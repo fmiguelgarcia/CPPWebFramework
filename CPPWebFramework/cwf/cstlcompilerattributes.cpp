@@ -10,6 +10,25 @@
 #include <QVariant>
 #include "metaclassparser.h"
 
+namespace
+{
+	template<class T>
+	void invokeMethodAndPush( QObject* object, const char* method, QString& value, bool& ok)
+	{
+		T returnValue;
+		ok = QMetaObject::invokeMethod(object, method, Qt::DirectConnection, Q_RETURN_ARG(T, returnValue));
+		value.push_back(returnValue);
+	}
+
+	template< class T>
+	void invokeMethodAndNumber( QObject* object, const char* method, QString& value, bool& ok)
+	{
+		T returnValue;
+		ok = QMetaObject::invokeMethod(object, method, Qt::DirectConnection, Q_RETURN_ARG(T, returnValue));
+		value = std::move( QString::number( returnValue));
+	}
+}
+
 CWF_BEGIN_NAMESPACE
 
 CSTLCompilerAttributes::CSTLCompilerAttributes(QMap<QString, QObject *> &objects) : objects(objects)
@@ -65,7 +84,7 @@ void CSTLCompilerAttributes::compileAttributes(QMap<QString, QString> &attr)
 void CSTLCompilerAttributes::compile(QString &text, QString &outPutText)
 {
     bool start = false;
-    int size = text.size();
+    const int size = text.size();
     QString expr;
 
     for(int i = 0; i < size; ++i)
@@ -103,91 +122,81 @@ void CSTLCompilerAttributes::compile(QString &text, QString &outPutText)
 
                     if(!methodReturnType.isEmpty())
                     {
-                        if(methodReturnType == CSTL::SUPPORTED_TYPES::QSTRING)
-                            ok = QMetaObject::invokeMethod(object, prop.m_method.toStdString().data(), Qt::DirectConnection, Q_RETURN_ARG(QString, value));
-                        else if(methodReturnType == CSTL::SUPPORTED_TYPES::STD_STRING)
-                        {
-                            std::string returnValue;
-                            ok = QMetaObject::invokeMethod(object, prop.m_method.toStdString().data(), Qt::DirectConnection, Q_RETURN_ARG(std::string, returnValue));
-                            value = returnValue.data();
-                        }
-                        else if(methodReturnType == CSTL::SUPPORTED_TYPES::BOOL)
-                        {
-                            bool returnValue;
-                            ok = QMetaObject::invokeMethod(object, prop.m_method.toStdString().data(), Qt::DirectConnection, Q_RETURN_ARG(bool, returnValue));
-                            value = std::move(QString::number(returnValue));
-                        }
-                        else if(methodReturnType == CSTL::SUPPORTED_TYPES::CHAR)
-                        {
-                            char returnValue;
-                            ok = QMetaObject::invokeMethod(object, prop.m_method.toStdString().data(), Qt::DirectConnection, Q_RETURN_ARG(char, returnValue));
-                            value.push_back(returnValue);
-                        }
-                        else if(methodReturnType == CSTL::SUPPORTED_TYPES::UNSIGNED_CHAR)
-                        {
-                            unsigned char returnValue;
-                            ok = QMetaObject::invokeMethod(object, prop.m_method.toStdString().data(), Qt::DirectConnection, Q_RETURN_ARG(unsigned char, returnValue));
-                            value.push_back(returnValue);
-                        }                                                
-                        else if(methodReturnType == CSTL::SUPPORTED_TYPES::SHORT)
-                        {
-                            short returnValue;
-                            ok = QMetaObject::invokeMethod(object, prop.m_method.toStdString().data(), Qt::DirectConnection, Q_RETURN_ARG(short, returnValue));
-                            value = std::move(QString::number(returnValue));
-                        }
-                        else if(methodReturnType == CSTL::SUPPORTED_TYPES::UNSIGNED_SHORT)
-                        {
-                            unsigned short returnValue;
-                            ok = QMetaObject::invokeMethod(object, prop.m_method.toStdString().data(), Qt::DirectConnection, Q_RETURN_ARG(unsigned short, returnValue));
-                            value = std::move(QString::number(returnValue));
-                        }
-                        else if(methodReturnType == CSTL::SUPPORTED_TYPES::INT)
-                        {
-                            int returnValue;
-                            ok = QMetaObject::invokeMethod(object, prop.m_method.toStdString().data(), Qt::DirectConnection, Q_RETURN_ARG(int, returnValue));
-                            value = std::move(QString::number(returnValue));
-                        }
-                        else if(methodReturnType == CSTL::SUPPORTED_TYPES::UNSIGNED_INT)
-                        {
-                            unsigned int returnValue;
-                            ok = QMetaObject::invokeMethod(object, prop.m_method.toStdString().data(), Qt::DirectConnection, Q_RETURN_ARG(unsigned int, returnValue));
-                            value = std::move(QString::number(returnValue));
-                        }
-                        else if(methodReturnType == CSTL::SUPPORTED_TYPES::LONG)
-                        {
-                            long returnValue;
-                            ok = QMetaObject::invokeMethod(object, prop.m_method.toStdString().data(), Qt::DirectConnection, Q_RETURN_ARG(long, returnValue));
-                            value = std::move(QString::number(returnValue));
-                        }
-                        else if(methodReturnType == CSTL::SUPPORTED_TYPES::UNSIGNED_LONG)
-                        {
-                            unsigned long returnValue;
-                            ok = QMetaObject::invokeMethod(object, prop.m_method.toStdString().data(), Qt::DirectConnection, Q_RETURN_ARG(unsigned long, returnValue));
-                            value = std::move(QString::number(returnValue));
-                        }
-                        else if(methodReturnType == CSTL::SUPPORTED_TYPES::LONG_LONG)
-                        {
-                            long long returnValue;
-                            ok = QMetaObject::invokeMethod(object, prop.m_method.toStdString().data(), Qt::DirectConnection, Q_RETURN_ARG(long long, returnValue));
-                            value = std::move(QString::number(returnValue));
-                        }
-                        else if(methodReturnType == CSTL::SUPPORTED_TYPES::UNSIGNED_LONG_LONG)
-                        {
-                            unsigned long long returnValue;
-                            ok = QMetaObject::invokeMethod(object, prop.m_method.toStdString().data(), Qt::DirectConnection, Q_RETURN_ARG(unsigned long long, returnValue));
-                            value = std::move(QString::number(returnValue));
-                        }
-                        else if(methodReturnType == CSTL::SUPPORTED_TYPES::FLOAT)
-                        {
-                            float returnValue;
-                            ok = QMetaObject::invokeMethod(object, prop.m_method.toStdString().data(), Qt::DirectConnection, Q_RETURN_ARG(float, returnValue));
-                            value = std::move(QString::number(returnValue));
-                        }
-                        else if(methodReturnType == CSTL::SUPPORTED_TYPES::DOUBLE)
-                        {
-                            double returnValue;
-                            ok = QMetaObject::invokeMethod(object, prop.m_method.toStdString().data(), Qt::DirectConnection, Q_RETURN_ARG(double, returnValue));
-                            value = std::move(QString::number(returnValue));
+						using RetHandlerFuncType = std::function< void( QObject*, const char*, QString&, bool&)>;
+						static const QHash<QString, RetHandlerFuncType> returnHandler {
+							{
+								CSTL::SUPPORTED_TYPES::QSTRING(),
+								[]( QObject* object, const char* method, QString& value, bool& ok){
+									ok = QMetaObject::invokeMethod(object, method, Qt::DirectConnection, Q_RETURN_ARG(QString, value));
+								}
+							},
+							{
+								CSTL::SUPPORTED_TYPES::STD_STRING(),
+								[]( QObject* object, const char* method, QString& value, bool& ok){
+									std::string returnValue;
+									ok = QMetaObject::invokeMethod(object, method, Qt::DirectConnection, Q_RETURN_ARG(std::string, returnValue));
+									value = std::move( QString::fromStdString( returnValue));
+								}
+							},
+							{
+								CSTL::SUPPORTED_TYPES::BOOL(),
+								& invokeMethodAndNumber<bool>
+							},
+							{
+								CSTL::SUPPORTED_TYPES::CHAR(),
+								& invokeMethodAndPush<char>
+							},
+							{
+								CSTL::SUPPORTED_TYPES::UNSIGNED_CHAR(),
+								& invokeMethodAndPush<unsigned char>
+							},
+							{
+								CSTL::SUPPORTED_TYPES::SHORT(),
+								& invokeMethodAndNumber<short>
+							},
+							{
+								CSTL::SUPPORTED_TYPES::UNSIGNED_SHORT(),
+								& invokeMethodAndNumber<unsigned short>
+							},
+							{
+								CSTL::SUPPORTED_TYPES::INT(),
+								& invokeMethodAndNumber<int>
+							},
+							{
+								CSTL::SUPPORTED_TYPES::UNSIGNED_INT(),
+								& invokeMethodAndNumber<unsigned int>
+							},
+							{
+								CSTL::SUPPORTED_TYPES::LONG(),
+								& invokeMethodAndNumber<long>
+							},
+							{
+								CSTL::SUPPORTED_TYPES::UNSIGNED_LONG(),
+								& invokeMethodAndNumber<unsigned long>
+							},
+							{
+								CSTL::SUPPORTED_TYPES::LONG_LONG(),
+								& invokeMethodAndNumber<long long>
+							},
+							{
+								CSTL::SUPPORTED_TYPES::UNSIGNED_LONG_LONG(),
+								& invokeMethodAndNumber<unsigned long long>
+							},
+							{
+								CSTL::SUPPORTED_TYPES::FLOAT(),
+								& invokeMethodAndNumber<float>
+							},
+							{
+								CSTL::SUPPORTED_TYPES::DOUBLE(),
+								& invokeMethodAndNumber<double>
+							}
+						};
+
+						auto itr = returnHandler.constFind( methodReturnType);
+						if( itr != std::end( returnHandler))
+						{
+							const std::string method = prop.m_method.toStdString();
+							itr.value()( object, method.c_str(), value, ok);
                         }
 
                         if(!ok)

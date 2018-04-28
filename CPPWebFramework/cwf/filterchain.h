@@ -17,7 +17,9 @@
 #include "constants.h"
 #include "requestdispatcher.h"
 #include "cppwebframework_global.h"
+
 #include <QFile>
+#include <QMimeDatabase>
 
 CWF_BEGIN_NAMESPACE
 /**
@@ -52,6 +54,9 @@ public:
      * @param response : This is a reference to the Response.
      */
     void doFilter(CWF::Request &request, CWF::Response &response);
+
+private:
+	QMimeDatabase mMimeDB;	///< Mime types database.
 };
 
 CWF_END_NAMESPACE

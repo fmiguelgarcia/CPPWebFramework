@@ -8,7 +8,7 @@
 #ifndef CSTLCOMPILERFOR_H
 #define CSTLCOMPILERFOR_H
 
-#include <QMap>
+#include <QHash>
 #include <QXmlStreamAttributes>
 #include "cppwebframework_global.h"
 
@@ -19,7 +19,7 @@ CWF_BEGIN_NAMESPACE
 class CPPWEBFRAMEWORKSHARED_EXPORT CSTLCompilerFor
 {
 public:
-    QMap<QString, QString> attributes;
+    QHash<QString, QString> attributes;
     /**
      * @brief This constructor processes and validates the attributes of "for" tags.
      * @param const QXmlStreamAttributes &attr : XML tag attributes.

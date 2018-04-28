@@ -14,8 +14,8 @@ QPair<QString, qint64> getFileAndMaxSize()
 {
     QPair<QString, qlonglong> info;
 
-    info.first  = qgetenv(CONFIGURATION::CPP_LOG_VAR.toStdString().data());
-    info.second = QByteArray(qgetenv(CONFIGURATION::CPP_LOG_MAX_VAR.toStdString().data())).toInt();
+    info.first  = qgetenv(CONFIGURATION::CPP_LOG_VAR().toStdString().data());
+    info.second = QByteArray(qgetenv(CONFIGURATION::CPP_LOG_MAX_VAR().toStdString().data())).toInt();
 
     if(info.second <= 0)
     {
@@ -61,11 +61,11 @@ CppWebApplication::CppWebApplication(int argc, char *argv[],
 {
     if(configuration.isValid())
     {               
-        qunsetenv(CONFIGURATION::CPP_LOG_VAR.toStdString().data());
-        qunsetenv(CONFIGURATION::CPP_LOG_MAX_VAR.toStdString().data());
+        qunsetenv(CONFIGURATION::CPP_LOG_VAR().constData());
+        qunsetenv(CONFIGURATION::CPP_LOG_MAX_VAR().constData());
 
-        qputenv(CONFIGURATION::CPP_LOG_VAR.toStdString().data(), configuration.getLogFilePath().toLatin1());
-        qputenv(CONFIGURATION::CPP_LOG_MAX_VAR.toStdString().data(), QByteArray::number(configuration.getMaxLogFile()));
+        qputenv(CONFIGURATION::CPP_LOG_VAR().constData(), configuration.getLogFilePath().toLatin1());
+        qputenv(CONFIGURATION::CPP_LOG_MAX_VAR().constData(), QByteArray::number(configuration.getMaxLogFile()));
 
         QPair<QString, qint64> info(getFileAndMaxSize());
         if(!QFile(info.first).exists())

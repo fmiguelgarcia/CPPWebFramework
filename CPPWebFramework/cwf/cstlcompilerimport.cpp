@@ -10,6 +10,12 @@
 #include "filemanager.h"
 #include "constants.h"
 
+namespace
+{
+	QString errorMissingUrlAttribute() Q_DECL_NOEXCEPT
+	{ return QStringLiteral("***ERROR IMPORT TAG - IMPORT TAG NEEDS THE URL ATTRIBUTE***");}
+}
+
 CWF_BEGIN_NAMESPACE
 
 CSTLCompilerImport::CSTLCompilerImport(const QXmlStreamAttributes &attr, QString path)
@@ -17,16 +23,20 @@ CSTLCompilerImport::CSTLCompilerImport(const QXmlStreamAttributes &attr, QString
     int size = attr.size();
     if(size == 0)
     {
-        attributes.insert(CSTL::TAG::PROPERTY::ERROR, "***ERROR IMPORT TAG - IMPORT TAG NEEDS THE URL ATTRIBUTE***");
+        attributes.insert(
+			CSTL::TAG::PROPERTY::ERROR(),
+			errorMissingUrlAttribute());
     }
     else if(size == 1)
     {
          QString name(std::move(attr[0].name().toString().toLower()));
          QString value(std::move(attr[0].value().toString()));
 
-         if(name != CSTL::TAG::PROPERTY::IMPORT::URL)
+         if(name != CSTL::TAG::PROPERTY::IMPORT::URL())
          {
-             attributes.insert(CSTL::TAG::PROPERTY::ERROR, "***ERROR IMPORT TAG - IMPORT TAG NEEDS THE URL ATTRIBUTE***");
+             attributes.insert(
+				CSTL::TAG::PROPERTY::ERROR(),
+				errorMissingUrlAttribute());
          }
          else
          {             
@@ -36,12 +46,16 @@ CSTLCompilerImport::CSTLCompilerImport(const QXmlStreamAttributes &attr, QString
              path += value;
 
              QFile::FileError fileError;
-             attributes.insert(CSTL::TAG::PROPERTY::IMPORT::URL, fileManager.readAll(path, fileError));
+             attributes.insert(
+				CSTL::TAG::PROPERTY::IMPORT::URL(),
+				fileManager.readAll(path, fileError));
          }
     }
     else
     {
-        attributes.insert(CSTL::TAG::PROPERTY::ERROR, "***ERROR IMPORT TAG - IMPORT TAG ONLY NEEDS THE URL ATTRIBUTE***");
+        attributes.insert(
+			CSTL::TAG::PROPERTY::ERROR(),
+			errorMissingUrlAttribute());
     }
 }
 

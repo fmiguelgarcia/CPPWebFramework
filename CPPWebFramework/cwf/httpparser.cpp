@@ -15,7 +15,7 @@ CWF_BEGIN_NAMESPACE
 
 bool HttpParser::extractHeaderAndBody(QByteArray &httpMessage)
 {
-    int index = httpMessage.indexOf(HTTP::END_OF_MENSAGE);
+    int index = httpMessage.indexOf(HTTP::END_OF_MENSAGE());
     if(index != -1)
     {
         index += 4;
@@ -63,10 +63,10 @@ void HttpParser::doParseHttpHeader(QByteArray &httpMessage)
         headerField.insert(std::move(line.left(column).trimmed()), std::move(line.mid(column + 1).trimmed()));
     }
 
-    contentLenght = headerField.value(HTTP::CONTENT_LENGTH).toLongLong();
-    contentType   = headerField.value(HTTP::CONTENT_TYPE);
-    multiPart     = contentType.contains(HTTP::MULTIPART);
-    if(contentType.contains(HTTP::URLENCODED))
+    contentLenght = headerField.value(HTTP::CONTENT_LENGTH()).toLongLong();
+    contentType   = headerField.value(HTTP::CONTENT_TYPE());
+    multiPart     = contentType.contains(HTTP::MULTIPART());
+    if(contentType.contains(HTTP::URLENCODED()))
         doParseBody();
 
     extractCookies();

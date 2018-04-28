@@ -13,10 +13,15 @@
 #include <QHostAddress>
 #include "filemanager.h"
 #include "cppwebframework_global.h"
+
+class QFileInfo;
+
 /**
  * @brief All classes of C++ Web Framework are contained within the namespace CWF.
  */
 CWF_BEGIN_NAMESPACE
+
+class ConfigurationPrivate;
 /**
  * @brief This class is responsable to read a ini file and extract its information.
  */
@@ -38,10 +43,28 @@ class CPPWEBFRAMEWORKSHARED_EXPORT Configuration
     QHostAddress host;
     qint64 maxUploadFile = 2097152;
     qint64 maxLogFile    = 20000000;
-    void configure();
+
+	 ConfigurationPrivate *d;	///< d-Pointer for PImpl.
+
+    /// @brief It loads configuration from @p confInfo.
+    void configure( const QFileInfo& confInfo);
+
 public:
     /**
      * @brief Will make reading the CPPWeb.ini file and extract all of its properties.
+     * The argument @p serverFilesPath can contains absolute or relative paths
+     * to a folder or to a file. The order to find configuration file is the
+     * following:
+     *      - Use @p serverFilesPath as absolute path to INI file. This one can
+     *      be use to support @c QResource address.
+     *      - Use @p serverFilesPath + 'config/CPPWeb.ini' as absolute path to
+     *      INI file.
+     *      - Use standard app config dir (see QStrandardPaths) dir + @p
+     *      serverFilesPath.
+     *      - Use standard app config dir + '/config/CPPWeb.ini'
+     *      - Use current app folder + @p serverFilesPath
+     *      - Use current app folder + '/config/CPPWeb.ini'
+     *      .
      * @param QString serverFilesPath : You should always points to the directory server.
      * @par Example
      * @code
@@ -55,7 +78,7 @@ public:
      * }
      * @endcode
      */
-    explicit Configuration(const QString &serverFilesPath = "");   
+    explicit Configuration(const QString &serverFilesPath = QString());
     /**
      * @brief Returns the timeOut property that will be used by the server to expire threads that are not in use.
      * Such threads will be restarted as needed. The default timeOut is 30000 milliseconds (30 seconds).

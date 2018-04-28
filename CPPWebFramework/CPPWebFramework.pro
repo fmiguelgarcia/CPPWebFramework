@@ -25,6 +25,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     cwf/configuration.cpp \
+    cwf/constants.cpp \
     cwf/cppwebapplication.cpp \
     cwf/cppwebserver.cpp \
     cwf/cstlcompiler.cpp \
