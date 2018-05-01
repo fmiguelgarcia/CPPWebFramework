@@ -75,7 +75,7 @@ CppWebApplication::CppWebApplication(int argc, char *argv[],
         }
         else if(configuration.isValid())
         {
-            valid = true;
+            mOptions.setFlag( Option::Valid);
             qInstallMessageHandler(writeLog);
             server = new CppWebServer(configuration, filter);
 
@@ -103,7 +103,7 @@ CppWebApplication::~CppWebApplication()
 
 int CppWebApplication::start()
 {
-    if(!configuration.isValid() || !valid)
+    if(!configuration.isValid() || !mOptions.testFlag(Option::Valid))
     {
         qDebug() << "Invalid configuration.\nServer offline\n";
         return -1;

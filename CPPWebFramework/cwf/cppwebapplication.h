@@ -37,19 +37,21 @@
 #include "cppwebframework_global.h"
 
 CWF_BEGIN_NAMESPACE
+class CppWebApplicationPrivate;
+
 /**
  * @brief This class is responsible for encapsulating the QCoreApplication, the
  * CppWebServer and configure the server logging mechanism.
  */
 class CPPWEBFRAMEWORKSHARED_EXPORT CppWebApplication
 {
-    QCoreApplication application;
-    Configuration    configuration;
-    CppWebServer     *server;
-    bool valid = false;
-    CppWebApplication(const CppWebApplication &other) = delete;
-    CppWebApplication &operator=(const CppWebApplication &other) = delete;        
+
 public:
+    enum Option {
+        Valid = 0x01
+    };
+    Q_DECLARE_FLAGS( Options, Option);
+    
     /**
      * @brief Constructs a QCoreApplication, a CppWebServer and install the message handler.
      * if the server folder's path was not found in the serverPath, it will look into the executable's folder.
@@ -59,6 +61,7 @@ public:
      * @param Filter *filter              : Install a filter for requests on the server.
      */
     CppWebApplication(int argc, char *argv[], const QString &serverPath, Filter *filter = nullptr);
+    
     /**
      * @brief Destroys the server dynamically allocated.
      */
@@ -91,7 +94,22 @@ public:
      * @return int : Returns -1 if it fails.
      */
     int start();
+    
+protected:
+    CppWebApplicationPrivate *d_ptr;        ///< Support d-ptr.
+    Q_DECLARE_PRIVATE(CppWebApplication);
+
+private:    
+    QCoreApplication application;
+    Configuration    configuration;
+    CppWebServer     *server;
+    Options mOptions = 0x0;
+    
+    CppWebApplication(const CppWebApplication &other) = delete;
+    CppWebApplication &operator=(const CppWebApplication &other) = delete;
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS( CppWebApplication::Options)
 
 CWF_END_NAMESPACE
 
