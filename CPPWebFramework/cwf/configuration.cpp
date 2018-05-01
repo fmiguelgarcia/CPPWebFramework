@@ -41,7 +41,7 @@ Configuration::Configuration(const QString &serverFilesPath)
     {
         if( confPath.isFile() && confPath.isReadable())
         {
-            valid = true;
+            mOptions.setFlag( ConfigurationOption::Valid);
             configure( confPath);
             break;
         }
@@ -66,10 +66,18 @@ void Configuration::configure( const QFileInfo& confInfo)
     sessionExpirationTime = settings.value("sessionExpirationTime", sessionExpirationTime).toInt();
     maxUploadFile         = settings.value("maxUploadFile", maxUploadFile).toULongLong();
     indexPage             = settings.value("indexPage").toString();
-    accessCPPWebIni       = settings.value("accessCPPWebIni", accessCPPWebIni).toBool();
-    accessServerPages     = settings.value("accessServerPages", accessServerPages).toBool();
     maxLogFile            = settings.value("maxLogFile", maxLogFile).toLongLong();
-
+    mOptions.setFlag( 
+        ConfigurationOption::AccessCPPWebIni,
+        settings.value(
+            "accessCPPWebIni", 
+            mOptions.testFlag(ConfigurationOption::AccessCPPWebIni)).toBool());
+    mOptions.setFlag( 
+        ConfigurationOption::AccessServerPages,
+        settings.value(
+            "accessServerPages", 
+            mOptions.testFlag(ConfigurationOption::AccessServerPages)).toBool());
+    
     // Use standard paths for logs and SSL files by default.
     const QDir appConfDir( QStandardPaths::standardLocations( 
         QStandardPaths::AppConfigLocation).first());

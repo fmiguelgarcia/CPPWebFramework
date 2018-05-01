@@ -27,29 +27,14 @@ class ConfigurationPrivate;
  */
 class CPPWEBFRAMEWORKSHARED_EXPORT Configuration
 {
-    bool valid                = false;
-    bool accessCPPWebIni      = false;
-    bool accessServerPages    = false;
-    int timeOut               = 30000;
-    int sessionExpirationTime = 1800000;
-    int cleanupInterval       = 86400000;
-    int port                  = 8080;
-    int maxThread             = 100;
-    QString sslKeyFile;
-    QString sslCertFile;
-    QString path;
-    QString logFilePath;
-    QString indexPage;
-    QHostAddress host;
-    qint64 maxUploadFile = 2097152;
-    qint64 maxLogFile    = 20000000;
-
-	 ConfigurationPrivate *d;	///< d-Pointer for PImpl.
-
-    /// @brief It loads configuration from @p confInfo.
-    void configure( const QFileInfo& confInfo);
-
 public:
+    enum ConfigurationOption {
+        Valid = 0x01,
+        AccessCPPWebIni = 0x02,
+        AccessServerPages = 0x04
+    };
+    Q_DECLARE_FLAGS( ConfigurationOptions, ConfigurationOption);
+
     /**
      * @brief Will make reading the CPPWeb.ini file and extract all of its properties.
      * The argument @p serverFilesPath can contains absolute or relative paths
@@ -150,13 +135,38 @@ public:
      * @brief Returns the access server page.
      * @return bool : Access server pages.
      */
-    inline bool getAccessServerPages() const noexcept { return accessServerPages; }
+    inline bool getAccessServerPages() const noexcept { return mOptions.testFlag( ConfigurationOption::AccessServerPages); }
     /**
      * @brief Returns true if the Configuration is ok. Otherwise returns false.
      * @param bool : is valid.
      */
-    inline bool isValid() const noexcept { return valid; }
+    inline bool isValid() const noexcept { return mOptions.testFlag( ConfigurationOption::Valid); }
+ 
+protected:
+    ConfigurationPrivate *d_ptr;        ///< d-Pointer for PImpl.
+    Q_DECLARE_PRIVATE(Configuration);
+   
+private:
+    ConfigurationOptions mOptions = 0x0;
+    int timeOut               = 30000;
+    int sessionExpirationTime = 1800000;
+    int cleanupInterval       = 86400000;
+    int port                  = 8080;
+    int maxThread             = 100;
+    QString sslKeyFile;
+    QString sslCertFile;
+    QString path;
+    QString logFilePath;
+    QString indexPage;
+    QHostAddress host;
+    qint64 maxUploadFile = 2097152;
+    qint64 maxLogFile    = 20000000;
+
+    /// @brief It loads configuration from @p confInfo.
+    void configure( const QFileInfo& confInfo);
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS( Configuration::ConfigurationOptions)
 
 CWF_END_NAMESPACE
 
