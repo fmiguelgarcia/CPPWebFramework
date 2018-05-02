@@ -13,30 +13,12 @@
 #include "cstlcompilerimport.h"
 #include "constants.h"
 
+#include <QHash>
+#include <QSet>
 #include <QStringBuilder>
+#include <vector>
 
-using namespace CWF;
-
-namespace
-{
-	QByteArray processXmlTagOut(
-		CSTLCompiler& compiler,
-		QXmlStreamReader& xml,
-		CSTLCompilerAttributes& compilerAttributes,
-		QString& name)
-	{
-		QByteArray data;
-		if( xml.isStartElement())
-		{
-			QMap<QString, QString> attr(
-			compilerAttributes.getAttributes(
-				xml.attributes()));
-			name.clear();
-			data = compiler.processOutTag(attr);
-		}
-		return data;
-	}
-}
+using namespace std;
 
 CWF_BEGIN_NAMESPACE
 
@@ -48,25 +30,26 @@ CSTLCompiler::CSTLCompiler(const QByteArray &str, const QString &path,
                                                  isStrFileName(isStrFileName)
 {
     if(isStrFileName)
-        isView = str.toLower().endsWith( ".view");
+        isView = str.toLower().endsWith(".view");
 }
 
 QByteArray CSTLCompiler::openFile(QXmlStreamReader &xml)
 {
-	QByteArray content;
-
     if(isStrFileName)
     {
         QFile file(str);
         if(!file.open(QIODevice::ReadOnly))
-            content = "<html><body>" + file.errorString().toUtf8() + "</body></html>";
+            return "<html><body>" + file.errorString().toUtf8() + "</body></html>";
 
-		else
-		{
-			content = std::move(file.readAll());
-			file.close();
-			if(isView)
-				xml.addData(content);
+        QByteArray content(std::move(file.readAll()));
+        file.close();
+        if(isView)
+        {
+            xml.addData(content);
+        }
+        else
+        {
+            return content;
         }
     }
     else
@@ -75,20 +58,17 @@ QByteArray CSTLCompiler::openFile(QXmlStreamReader &xml)
     }
 
     if (xml.hasError())
-        content = "<html><body>XML ERROR: " + xml.errorString().toUtf8() + "</body></html>";
-
-    return content;
+        return "<html><body>XML ERROR: " + xml.errorString().toUtf8() + "</body></html>";
+    return "";
 }
 
 QByteArray CSTLCompiler::processOutTag(QMap<QString, QString> &attr)
 {
-	QByteArray data;
-
-	const int size = attr.size();
+    int size = attr.size();
     if(size < 1)
-        return QByteArray();
+        return "";
     else if(size > 1)
-        return "***ERROR - OUT TAG DOES NOT HAVE MORE THAN PROPERTY***";
+        return "***ERROR - OUT TAG DOES NOT HAS MORE THAN PROPERTY***";
 
     return CSTLCompilerAttributes(objects).buildAttributes(attr, false).toUtf8();
 }
@@ -188,10 +168,8 @@ QByteArray CSTLCompiler::processForTag(QXmlStreamReader &xml)
                 copy.replace(XML::HEADER(), QString());
                 QString outPutText;
                 compilerAttributes.compile(copy, outPutText);
-                copy = XML::HEADER()
-					% QLatin1Literal("<out>")
-					% outPutText
-					% QLatin1Literal("</out>");
+                copy = XML::HEADER() % QLatin1Literal("<out>") % outPutText 
+						 % QLatin1Literal("</out>");
 
                 QXmlStreamReader forBody(copy);
                 htmlOut += processXml(forBody);
@@ -215,8 +193,7 @@ QByteArray CSTLCompiler::processIfTag(QXmlStreamReader &xml)
     else
     {
         QString var(ifAttributes.attributes[CSTL::TAG::PROPERTY::VAR()]);
-        QString condition(ifAttributes.attributes[CSTL::TAG::PROPERTY::CONDITION()]);
-
+			QString condition(ifAttributes.attributes[CSTL::TAG::PROPERTY::CONDITION()]);
         CSTLCompilerObject conditionObj, varObj;
         bool removeVar = false, removeCondition = false;
         if(!objects.contains(var))
@@ -281,10 +258,11 @@ QByteArray CSTLCompiler::processIfTag(QXmlStreamReader &xml)
         {
             if(!tagBody.contains("<") || !tagBody.contains("</"))
             {
-                tagBody.replace(XML::HEADER(), "");
+                tagBody.replace(XML::HEADER(), QString());
                 QString outPutText;
                 compilerAttributes.compile(tagBody, outPutText);
-                tagBody = XML::HEADER() + "<out>" + outPutText + "</out>";
+                tagBody = XML::HEADER() % QLatin1Literal("<out>") % outPutText 
+						 % QLatin1Literal("</out>");
             }
             QXmlStreamReader forBody(tagBody);
             htmlOut += processXml(forBody);
@@ -300,23 +278,6 @@ QByteArray CSTLCompiler::processIfTag(QXmlStreamReader &xml)
 
 QByteArray CSTLCompiler::processXml(QXmlStreamReader &xml)
 {
-	using XmlElementHandler = std::function< QByteArray(
-		CSTLCompiler&,
-		QXmlStreamReader&,
-		CSTLCompilerAttributes&,
-		QString&)>;
-	static const QHash<QString, XmlElementHandler> nameHandlerMapper = {
-		{
-			CSTL::TAG::OUT(),
-			& processXmlTagOut
-		},
-		{
-			CSTL::TAG::FOR(),
-			[]( CSTLCompiler& compiler, QXmlStreamReader& xml, CSTLCompilerAttributes& compilerAttributes, QString& name){
-			}
-		}
-	};
-
     QByteArray htmlOut;
     while(!xml.atEnd())
     {
@@ -326,34 +287,49 @@ QByteArray CSTLCompiler::processXml(QXmlStreamReader &xml)
         QString tagAttributes;
         QMap<QString, QString> attr;
 
-
-        else if(name == CSTL::TAG::FOR() && xml.isStartElement())
+        if( xml.isStartElement())
         {
-            htmlOut += processForTag(xml);
-            name.clear();
-        }
-        else if(name == CSTL::TAG::IF() && xml.isStartElement())
-        {
-            htmlOut += processIfTag(xml);
-            name.clear();
-        }
-        else if(name == CSTL::TAG::IMPORT() && xml.isStartElement())
-        {
-            CSTLCompilerImport importUrl(xml.attributes(), path);
-            if(!importUrl.attributes.contains(CSTL::TAG::PROPERTY::ERROR()))
-                htmlOut += importUrl.attributes[CSTL::TAG::PROPERTY::IMPORT::URL()].toUtf8();
-            else
-                htmlOut += importUrl.attributes[CSTL::TAG::PROPERTY::ERROR()].toUtf8();
-            name.clear();
-
+            static const vector<uint> tagsHashList = {
+                qHash( CSTL::TAG::OUT()),
+                qHash( CSTL::TAG::FOR()),
+                qHash( CSTL::TAG::IF()),
+                qHash( CSTL::TAG::IMPORT())
+            };
+            const uint nameHash = qHash( name);
+            
+            if( nameHash == tagsHashList[0]) // CSTL::TAG::OUT()
+            {
+                attr = std::move(compilerAttributes.getAttributes(xml.attributes()));
+                htmlOut += processOutTag(attr);
+                name.clear();
+            }
+            else if( nameHash == tagsHashList[1]) // CSTL::TAG::FOR()
+            {
+                htmlOut += processForTag(xml);
+                name.clear();
+            }
+            else if( nameHash == tagsHashList[2]) // CSTL::TAG::IF() 
+            {
+                htmlOut += processIfTag(xml);
+                name.clear();
+            }
+            else if( nameHash == tagsHashList[3]) // CSTL::TAG::IMPORT() 
+            {
+                CSTLCompilerImport importUrl(xml.attributes(), path);
+                if(!importUrl.attributes.contains(CSTL::TAG::PROPERTY::ERROR()))
+                    htmlOut += importUrl.attributes[CSTL::TAG::PROPERTY::IMPORT::URL()].toUtf8();
+                else
+                    htmlOut += importUrl.attributes[CSTL::TAG::PROPERTY::ERROR()].toUtf8();
+                name.clear();
+            }
         }
         else
         {
-			static const QSet<QString> validNames = {
-				CSTL::TAG::OUT(),
-				CSTL::TAG::IF(),
-				CSTL::TAG::FOR()
-			};
+            static const QSet<QString> validNames = {
+                CSTL::TAG::OUT(),
+                CSTL::TAG::IF(),
+                CSTL::TAG::FOR()
+            };
 
             if( validNames.contains( name) == false)
             {
@@ -365,9 +341,7 @@ QByteArray CSTLCompiler::processXml(QXmlStreamReader &xml)
                     name = "</" + name + ">";
             }
             else
-            {
                 name.clear();
-            }
         }
 
         //process(text, number);

@@ -8,16 +8,32 @@
 #include "response.h"
 #include "configuration.h"
 #include "constants.h"
+
+#include <QString>
 #include <QDateTime>
+#include <QDataStream>
+#include <QStringBuilder>
+
+namespace 
+{
+	QByteArray formatedCurrentDateTime()
+	{
+		const QString format = QStringLiteral("ddd, dd MMM yyyy hh:mm:ss t");
+		
+		return QDateTime::currentDateTime()
+			.toString( format)
+			.toUtf8();
+	}
+}
 
 CWF_BEGIN_NAMESPACE
 
-Response::Response(QTcpSocket &socket, const Configuration &configuration) : socket(&socket),
-                                                                                                   configuration(configuration)
-{
-    statusCode       = Response::SC_OK;
-    statusText       = HTTP::OK;
-}
+Response::Response(QTcpSocket &socket, const Configuration &configuration) 
+	: socket( &socket),
+	configuration( configuration),
+	statusCode( Response::SC_OK),
+	statusText( HTTP::OK())
+{}
 
 void Response::flushBuffer()
 {
@@ -25,9 +41,9 @@ void Response::flushBuffer()
     if(!content.isEmpty())
     {
         bool biggerThanLimit = content.size() > max;
-        headers.insert(HTTP::CONTENT_LENGTH, QByteArray::number(content.size()));
-        headers.insert(HTTP::SERVER, HTTP::SERVER_VERSION);
-        headers.insert(HTTP::DATA, QByteArray(std::move(QDateTime::currentDateTime().toString("ddd, dd MMM yyyy hh:mm:ss").toLatin1() + " GMT")));
+        headers.insert( HTTP::CONTENT_LENGTH(), QByteArray::number(content.size()));
+        headers.insert( HTTP::SERVER(), HTTP::SERVER_VERSION());
+        headers.insert( HTTP::DATA(), formatedCurrentDateTime());
 
         if(!biggerThanLimit)
         {
@@ -36,7 +52,7 @@ void Response::flushBuffer()
         }
         else
         {
-            headers.insert(HTTP::TRANSFER_ENCODING, HTTP::CHUNKED);
+            headers.insert( HTTP::TRANSFER_ENCODING(), HTTP::CHUNKED());
             writeHeaders();
             int total = (content.size() / max) + 1, last = 0;
 
@@ -53,13 +69,13 @@ void Response::flushBuffer()
                 if(!data.isEmpty())
                 {
                     QByteArray buffer(std::move(QByteArray::number(data.size(), 16)));
-                    buffer.append(HTTP::END_LINE);
+                    buffer.append( HTTP::END_LINE());
                     writeToSocket(buffer);
                     writeToSocket(data);
-                    writeToSocket(HTTP::END_LINE);
+                    writeToSocket( HTTP::END_LINE());
                 }
             }
-            writeToSocket(HTTP::END_OF_MENSAGE_WITH_ZERO);
+            writeToSocket( HTTP::END_OF_MENSAGE_WITH_ZERO());
         }
         socket->disconnectFromHost();
         content.clear();
@@ -69,13 +85,15 @@ void Response::flushBuffer()
 void Response::sendError(int sc, const QByteArray &msg)
 {
     writeHeaders();
-    writeToSocket("<html><body><h1>" + QByteArray::number(sc) + " " + msg + "</h1></body></html>");
+	
+	 const QByteArray html = "<html><body><h1>" % QByteArray::number(sc) % ' ' % msg % "</h1></body></html>";
+    writeToSocket( html);
 }
 
 void Response::write(const QJsonObject &json, bool writeContentType)
 {
     if(writeContentType)
-        addHeader(CWF::HTTP::CONTENT_TYPE, CWF::HTTP::APPLICATION_JSON);
+        addHeader( CWF::HTTP::CONTENT_TYPE(), CWF::HTTP::APPLICATION_JSON());
     content = std::move(QJsonDocument(json).toJson());
     flushBuffer();
 }
@@ -83,7 +101,7 @@ void Response::write(const QJsonObject &json, bool writeContentType)
 void Response::write(const QJsonArray &array, bool writeContentType)
 {
     if(writeContentType)
-        addHeader(CWF::HTTP::CONTENT_TYPE, CWF::HTTP::APPLICATION_JSON);
+        addHeader( CWF::HTTP::CONTENT_TYPE(), CWF::HTTP::APPLICATION_JSON());
     content = std::move(QJsonDocument(array).toJson());
     flushBuffer();
 }
@@ -125,125 +143,34 @@ void Response::writeToSocket(const QByteArray &data)
 
 void Response::writeHeaders()
 {
-    QByteArray buffer;
+	const QByteArray httpEndLine = HTTP::END_LINE();
+	
+	QByteArray buffer;
+	QDataStream stream( &buffer, QIODevice::WriteOnly);
 
-    buffer.append("HTTP/1.1 ");
-    buffer.append(QByteArray::number(statusCode));
-    buffer.append(' ');
-    buffer.append(statusText);
-    buffer.append(HTTP::END_LINE);
+	stream << "HTTP/1.1 " << statusCode << ' ' << statusText.constData() << httpEndLine.constData();
 
-    if(!headers.contains(HTTP::CONTENT_TYPE))
-    {
-        headers.insert(HTTP::CONTENT_TYPE, HTTP::TEXT_HTML_UTF8);
-    }
+    if(!headers.contains( HTTP::CONTENT_TYPE()))
+        headers.insert( HTTP::CONTENT_TYPE(), HTTP::TEXT_HTML_UTF8());
 
     QList<QByteArray> headersList(std::move(headers.keys()));
 
     for(QByteArray &name : headersList)
-    {
-        buffer.append(name);
-        buffer.append(": ");
-        buffer.append(headers.value(name));
-        buffer.append(HTTP::END_LINE);
-    }
+		 stream << name << ": " << headers.value(name) << httpEndLine.constData();
+    
     for(HttpCookie &cookie : cookies)
-    {
-        buffer.append("Set-Cookie: ");
-        buffer.append(cookie.toByteArray());
-        buffer.append(HTTP::END_LINE);
-    }
-    buffer.append(HTTP::END_LINE);
-    writeToSocket(buffer);
+		 stream << "Set-Cookie: " << cookie.toByteArray().constData() << httpEndLine.constData();
+   
+	stream << httpEndLine.constData();
+
+	writeToSocket(buffer);
 }
 
 void Response::sendRedirect(const QByteArray &url)
 {
-    setStatus(Response::SC_SEE_OTHER, HTTP::SEE_OTHER);
-    addHeader(HTTP::LOCATION, url);
-    write(HTTP::REDIRECT, true);
+    setStatus( Response::SC_SEE_OTHER, HTTP::SEE_OTHER());
+    addHeader( HTTP::LOCATION(), url);
+    write( HTTP::REDIRECT(), true);
 }
-
-const int Response::SC_CONTINUE = 100;
-
-const int Response::SC_SWITCHING_PROTOCOLS = 101;
-
-const int Response::SC_OK = 200;
-
-const int Response::SC_CREATED = 201;
-
-const int Response::SC_ACCEPTED = 202;
-
-const int Response::SC_NON_AUTHORITATIVE_INFORMATION = 203;
-
-const int Response::SC_NO_CONTENT = 204;
-
-const int Response::SC_RESET_CONTENT = 205;
-
-const int Response::SC_PARTIAL_CONTENT = 206;
-
-const int Response::SC_MULTIPLE_CHOICES = 300;
-
-const int Response::SC_MOVED_PERMANENTLY = 301;
-
-const int Response::SC_MOVED_TEMPORARILY = 302;
-
-const int Response::SC_FOUND = 302;
-
-const int Response::SC_SEE_OTHER = 303;
-
-const int Response::SC_NOT_MODIFIED = 304;
-
-const int Response::SC_USE_PROXY = 305;
-
-const int Response::SC_TEMPORARY_REDIRECT = 307;
-
-const int Response::SC_BAD_REQUEST = 400;
-
-const int Response::SC_UNAUTHORIZED = 401;
-
-const int Response::SC_PAYMENT_REQUIRED = 402;
-
-const int Response::SC_FORBIDDEN = 403;
-
-const int Response::SC_NOT_FOUND = 404;
-
-const int Response::SC_METHOD_NOT_ALLOWED = 405;
-
-const int Response::SC_NOT_ACCEPTABLE = 406;
-
-const int Response::SC_PROXY_AUTHENTICATION_REQUIRED = 407;
-
-const int Response::SC_REQUEST_TIMEOUT = 408;
-
-const int Response::SC_CONFLICT = 409;
-
-const int Response::SC_GONE = 410;
-
-const int Response::SC_LENGTH_REQUIRED = 411;
-
-const int Response::SC_PRECONDITION_FAILED = 412;
-
-const int Response::SC_REQUEST_ENTITY_TOO_LARGE = 413;
-
-const int Response::SC_REQUEST_URI_TOO_LONG = 414;
-
-const int Response::SC_UNSUPPORTED_MEDIA_TYPE = 415;
-
-const int Response::SC_REQUESTED_RANGE_NOT_SATISFIABLE = 416;
-
-const int Response::SC_EXPECTATION_FAILED = 417;
-
-const int Response::SC_INTERNAL_SERVER_ERROR = 500;
-
-const int Response::SC_NOT_IMPLEMENTED = 501;
-
-const int Response::SC_BAD_GATEWAY = 502;
-
-const int Response::SC_SERVICE_UNAVAILABLE = 503;
-
-const int Response::SC_GATEWAY_TIMEOUT = 504;
-
-const int Response::SC_HTTP_VERSION_NOT_SUPPORTED = 505;
 
 CWF_END_NAMESPACE

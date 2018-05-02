@@ -21,52 +21,52 @@ void FilterChain::doFilter(CWF::Request &request, CWF::Response &response)
 {
     if(controller != nullptr)
     {
-		using MethodSelector = std::function< void( Controller* controller, Request& request, Response & response)>;
-		static const QHast<QByteArray, MethodSelector> methodMapper = {
-			{
-				HTTP::METHOD::GET(),
-				[]( Controller* controller, Request& request, Response & response){
-					controller->doGet(request, response);
-				}
-			},
-			{
-				HTTP::METHOD::POST(),
-				[]( Controller* controller, Request& request, Response & response){
-					controller->doPost(request, response);
-				}
-			},
-			{
-				HTTP::METHOD::PUT(),
-				[]( Controller* controller, Request& request, Response & response){
-					controller->doPut(request, response);
-				}
-			},
-			{
-				HTTP::METHOD::DELETE(),
-				[]( Controller* controller, Request& request, Response & response){
-					controller->doDelete(request, response);
-				}
-			},
-			{
-				HTTP::METHOD::OPTIONS(),
-				[]( Controller* controller, Request& request, Response & response){
-					controller->doOptions(request, response);
-				}
-			},
-			{
-				HTTP::METHOD::TRACE(),
-				[]( Controller* controller, Request& request, Response & response){
-					controller->doTrace(request, response);
-				}
-			}
-		};
+        using MethodSelector = std::function< void( Controller* controller, Request& request, Response & response)>;
+        static const QHash<QByteArray, MethodSelector> methodMapper = {
+            {
+                HTTP::METHOD::GET(),
+                []( Controller* controller, Request& request, Response & response){
+                    controller->doGet(request, response);
+                }
+            },
+            {
+                HTTP::METHOD::POST(),
+                []( Controller* controller, Request& request, Response & response){
+                    controller->doPost(request, response);
+                }
+            },
+            {
+                HTTP::METHOD::PUT(),
+                []( Controller* controller, Request& request, Response & response){
+                    controller->doPut(request, response);
+                }
+            },
+            {
+                HTTP::METHOD::DELETE(),
+                []( Controller* controller, Request& request, Response & response){
+                    controller->doDelete(request, response);
+                }
+            },
+            {
+                HTTP::METHOD::OPTIONS(),
+                []( Controller* controller, Request& request, Response & response){
+                    controller->doOptions(request, response);
+                }
+            },
+            {
+                HTTP::METHOD::TRACE(),
+                []( Controller* controller, Request& request, Response & response){
+                    controller->doTrace(request, response);
+                }
+            }
+        };
 
         const HttpParser &parser = request.getHttpParser();
-		const QByteArray method = parser.getMethod();
+        const QByteArray method = parser.getMethod();
 
-		auto itr = methodMapper.find( method);
-		if( itr != methodMapper.end())
-			itr.value()( controller, request, response);
+        auto itr = methodMapper.find( method);
+        if( itr != methodMapper.end())
+            itr.value()( controller, request, response);
     }
     else
     {
@@ -81,17 +81,17 @@ void FilterChain::doFilter(CWF::Request &request, CWF::Response &response)
             request.getRequestDispatcher(configuration.getIndexPage()).forward(request, response);
         }
         else
-		{
-			const QMimeType pathMime = mMimeDB.mimeTypeForName( path);
-			if( pathMime.isValid())
-				write(response, path, url, HTTP::CONTENT_TYPE(), pathMime.name().toUtf8());
-			else
-			{
-				response.setStatus(Response::SC_NOT_FOUND, STATUS::NOT_FOUND());
-				response.addHeader("Content-Type; charset=UTF-8", "text/html");
-				request.getRequestDispatcher(STATUS::STATUS_404()).forward(request, response);
-			}
-		}
+        {
+            const QMimeType pathMime = mMimeDB.mimeTypeForName( path);
+            if( pathMime.isValid())
+                write(response, path, url, HTTP::CONTENT_TYPE(), pathMime.name().toUtf8());
+            else
+            {
+                response.setStatus(Response::SC_NOT_FOUND, STATUS::NOT_FOUND());
+                response.addHeader("Content-Type; charset=UTF-8", "text/html");
+                request.getRequestDispatcher(STATUS::STATUS_404()).forward(request, response);
+            }
+        }
     }
 }
 

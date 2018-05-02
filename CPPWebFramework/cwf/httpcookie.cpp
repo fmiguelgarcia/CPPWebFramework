@@ -7,24 +7,24 @@
 namespace
 {
 
-#if defined Q_COMPILER_CONSTEXPR
-	Q_DECL_CONSTEXPR int maxInt64StrSize() Q_DECL_NOEXCEPT
-	{
-		Q_CONSTEXPR int sz = strlen( "+9223372036854775807");
-		return sz;
-	}
+#if 0
+    Q_CONSTEXPR int maxInt64StrSize() Q_DECL_NOEXCEPT
+    {
+        Q_CONSTEXPR int sz = strlen( "+9223372036854775807");
+        return sz;
+    }
 
-	Q_DECL_CONSTEXPR  int maxFixedFields() Q_DECL_NOEXCEPT
-	{
-		Q_CONSTEXPR int sz = strlen( "=; Comment=; Domain=; Max-Age=; Path=; Secure; Version=");
-		return sz;
-	}
+    Q_CONSTEXPR int maxFixedFields() Q_DECL_NOEXCEPT
+    {
+        Q_CONSTEXPR int sz = strlen( "=; Comment=; Domain=; Max-Age=; Path=; Secure; Version=");
+        return sz;
+    }
 #else
-	inline int maxInt64StrSize() Q_DECL_NOEXCEPT
-	{ return 20; };
+    inline int maxInt64StrSize() Q_DECL_NOEXCEPT
+    { return 20; };
 
-	inline int maxFixedFields() Q_DECL_NOEXCEPT
-	{ return 55; }
+    inline int maxFixedFields() Q_DECL_NOEXCEPT
+    { return 55; }
 #endif
 }
 
@@ -32,45 +32,45 @@ CWF_BEGIN_NAMESPACE
 
 HttpCookie::HttpCookie(const QByteArray &source)
 {
-	using CookieHandler = std::function< void( HttpCookie*, const QByteArray&)>;
-	static const QHash<QString, CookieHandler> cookieHandler= {
-		{
-			COOKIE::COMMENT(),
-			[]( HttpCookie* target, const QByteArray& value){
-				target->comment = value;
-			}
-		},
-		{
-			COOKIE::DOMAIN_COOKIE(),
-			[]( HttpCookie* target, const QByteArray& value){
-				target->domain = value;
-			}
-		},
-		{
-			COOKIE::MAX_AGE(),
-			[]( HttpCookie* target, const QByteArray& value){
-				target->maxAge = value.toInt();
-			}
-		},
-		{
-			COOKIE::PATH(),
-			[]( HttpCookie* target, const QByteArray& value){
-				target->path = value;
-			}
-		},
-		{
-			COOKIE::SECURE(),
-			[]( HttpCookie* target, const QByteArray& ){
-				target->secure = true;
-			}
-		},
-		{
-			COOKIE::VERSION(),
-			[]( HttpCookie* target, const QByteArray& value){
-				target->version = value.toInt();
-			}
-		}
-	};
+    using CookieHandler = std::function< void( HttpCookie*, const QByteArray&)>;
+    static const QHash<QString, CookieHandler> cookieHandler= {
+        {
+            COOKIE::COMMENT(),
+            []( HttpCookie* target, const QByteArray& value){
+                target->comment = value;
+            }
+        },
+        {
+            COOKIE::DOMAIN_COOKIE(),
+            []( HttpCookie* target, const QByteArray& value){
+                target->domain = value;
+            }
+        },
+        {
+            COOKIE::MAX_AGE(),
+            []( HttpCookie* target, const QByteArray& value){
+                target->maxAge = value.toInt();
+            }
+        },
+        {
+            COOKIE::PATH(),
+            []( HttpCookie* target, const QByteArray& value){
+                target->path = value;
+            }
+        },
+        {
+            COOKIE::SECURE(),
+            []( HttpCookie* target, const QByteArray& ){
+                target->secure = true;
+            }
+        },
+        {
+            COOKIE::VERSION(),
+            []( HttpCookie* target, const QByteArray& value){
+                target->version = value.toInt();
+            }
+        }
+    };
 
    QByteArray name;
    QByteArray value;
@@ -90,9 +90,9 @@ HttpCookie::HttpCookie(const QByteArray &source)
            value.clear();
        }
 
-		auto itr = cookieHandler.find( name);
-		if( itr != cookieHandler.end())
-			itr.value()( this, value);
+        auto itr = cookieHandler.find( name);
+        if( itr != cookieHandler.end())
+            itr.value()( this, value);
        else
        {
            if (this->name.isEmpty())
@@ -116,15 +116,15 @@ QByteArray HttpCookie::toByteArray() const
 {
    QByteArray buffer;
 
-	/// @note Optimization to avoid multiples reallocations.
-	const int maxSize =
-		// Variable part
-		name.size() + value.size() + comment.size() + domain.size() + path.size() +
-		// maxAge & version
-		maxInt64StrSize() + maxInt64StrSize() +
-		// Const part
-		maxFixedFields();
-	buffer.reserve( maxSize);
+    /// @note Optimization to avoid multiples reallocations.
+    const int maxSize =
+        // Variable part
+        name.size() + value.size() + comment.size() + domain.size() + path.size() +
+        // maxAge & version
+        maxInt64StrSize() + maxInt64StrSize() +
+        // Const part
+        maxFixedFields();
+    buffer.reserve( maxSize);
 
    buffer.append( name);
    buffer.append('=');

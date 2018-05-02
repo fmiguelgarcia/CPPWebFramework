@@ -131,12 +131,12 @@ void HttpParser::doParseBody()
 
 void HttpParser::extractCookies()
 {
-    QByteArrayList temp(headerField.values(HTTP::COOKIE));
+    QByteArrayList temp(headerField.values(HTTP::COOKIE()));
     int size = temp.size();
     for(int i = 0; i < size; ++i)
     {
         HttpCookie cookie(temp[i]);
-        if(cookie.getName() == HTTP::SESSION_ID)
+        if(cookie.getName() == HTTP::SESSION_ID())
             sessionId = cookie.getValue();
         cookies.push_back(std::move(cookie));
     }
@@ -144,8 +144,10 @@ void HttpParser::extractCookies()
 
 void HttpParser::doParseFiles()
 {
-    if(!body.startsWith(HTTP::CONTENT_DISPOSITION_COLON))
-        body.remove(0, body.indexOf(HTTP::CONTENT_DISPOSITION_COLON));
+	const QByteArray emptyStr;
+
+    if(!body.startsWith(HTTP::CONTENT_DISPOSITION_COLON()))
+        body.remove(0, body.indexOf(HTTP::CONTENT_DISPOSITION_COLON()));
 
     QByteArrayList cont(std::move(body.split('\n')));
     body.clear();
@@ -154,10 +156,14 @@ void HttpParser::doParseFiles()
     for(int i = 0; i < total; ++i)
     {
         QByteArray &temp = cont[i];
-        if(temp.contains(HTTP::CONTENT_DISPOSITION_COLON_SPACE))
+        if(temp.contains(HTTP::CONTENT_DISPOSITION_COLON_SPACE()))
         {
-            temp.replace(HTTP::CONTENT_DISPOSITION_COLON, "").replace(HTTP::FORM_DATA_COLON_SPACE,"").replace("\r", "").replace("\"", "");
-            if(temp.contains(HTTP::FILENAME))
+            temp.replace( HTTP::CONTENT_DISPOSITION_COLON(), emptyStr)
+					.replace( HTTP::FORM_DATA_COLON_SPACE(), emptyStr)
+					.replace( '\r', emptyStr)
+					.replace( '\"', emptyStr);
+					
+            if(temp.contains(HTTP::FILENAME()))
             {
                 if(!fileName.isEmpty())
                 {
@@ -168,7 +174,7 @@ void HttpParser::doParseFiles()
                 for(int j = 0; j < tmp.size(); ++j)
                 {
                     QByteArray &name = tmp[j];
-                    if(name.contains(HTTP::FILENAME))
+                    if(name.contains(HTTP::FILENAME()))
                     {
                         ++j;
                         if(j < tmp.size())
@@ -194,7 +200,7 @@ void HttpParser::doParseFiles()
                 break;
             }
         }
-        if(!temp.contains(HTTP::WEBKIT) && !temp.contains("--------"))
+        if(!temp.contains(HTTP::WEBKIT()) && !temp.contains("--------"))
             body += temp + "\n";
     }
     if(files.isEmpty() && !fileName.isEmpty())

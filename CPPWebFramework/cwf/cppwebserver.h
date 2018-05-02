@@ -8,41 +8,49 @@
 #ifndef CPPWEBSERVER_H
 #define CPPWEBSERVER_H
 
-#include <QTcpServer>
-#include <QSslKey>
-#include <QSslCertificate>
-#include <QHttpMultiPart>
-#include <QThreadPool>
-#include <QTimer>
-#include <atomic>
-#include "qmapthreadsafety.h"
-#include "httpreadrequest.h"
-#include "controller.h"
-#include "session.h"
-#include "filter.h"
-#include "controller.h"
 #include "configuration.h"
-#include "request.h"
-#include "response.h"
 #include "cppwebframework_global.h"
 
+#include <QHash>
+#include <QMutex>
+#include <QTcpServer>
+#include <QThreadPool>
+#include <QMutexLocker>
+#include <QScopedPointer>
+#include <QWeakPointer>
+
+class QTimer;
+class QSslConfiguration;
+
 CWF_BEGIN_NAMESPACE
+class Filter;
+class Session;
+class Controller;
+class CppWebServerPrivate;
+
 /**
  * @brief The CppWebServer class is a HTTP server, responsable to receive and dispatch the requisitions.
  */
 class CPPWEBFRAMEWORKSHARED_EXPORT CppWebServer : public QTcpServer
 {
     Q_OBJECT
+protected:
+    CppWebServerPrivate *d_ptr;
+    Q_DECLARE_PRIVATE(CppWebServer);
+ 
 private:
     Configuration configuration;
-    Filter *filter;
-    QTimer *timer;
+    QScopedPointer<Filter> filter;
+    QScopedPointer<QTimer, QScopedPointerDeleteLater> timer;
     QThreadPool pool;
-    QMapThreadSafety<QString, Controller *> urlController;
-    QMapThreadSafety<QString, Session *> sessions;
-    QSslConfiguration *sslConfiguration = nullptr;
-    const int sleepTime = 10;
-    QAtomicInteger<qint8> block = 0;    
+
+    QHash<QString, QScopedPointer<Controller>> urlController;
+    QMutex urlControllerMtx;
+    QHash<QString, QWeakPointer<Session> > sessions;
+    QMutex sessionsMtx;
+    
+    QScopedPointer<QSslConfiguration> sslConfiguration;
+    
     /**
      * @brief Load the SSL Configuration to the server.
      */
@@ -66,7 +74,12 @@ public:
     void addController(const QString &url) noexcept
     {
         static_assert(std::is_base_of<Controller, CONTROLLER>::value, "CONTROLLER must be a descendant of Controller");
-        urlController.insert(url, new CONTROLLER);
+       
+        QScopedPointer<CONTROLLER, QScopedPointerDeleteLater> ctrl(
+              new CONTROLLER);
+
+        QMutexLocker _(&urlControllerMtx);
+        urlController.insert(url, std::move(ctrl));
     }
 protected:
     /**

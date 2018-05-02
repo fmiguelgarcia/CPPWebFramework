@@ -21,12 +21,19 @@ CWF_BEGIN_NAMESPACE
 */
 class CPPWEBFRAMEWORKSHARED_EXPORT CSTLCompilerAttributes
 {
-    QMap<QString, QObject *> &objects;
+    const QMap<QString, QObject *> &objects;
+
 public:
-    explicit CSTLCompilerAttributes(QMap<QString, QObject *> &objects);
-    QString buildAttributes(QMap<QString, QString> &attr, bool keyValue = true);
-    void compileAttributes(QMap<QString, QString> &attr);
-    void compile(QString &text, QString &outPutText);
+    explicit CSTLCompilerAttributes(const QMap<QString, QObject *> &objects);
+
+    QString buildAttributes(
+        QMap<QString, QString> &attr, 
+        const bool keyValue = true);
+
+    void compileAttributes( QMap<QString, QString> &attr);
+   
+    void compile( QString &text, QString &outPutText);
+    
     QMap<QString, QString> getAttributes(const QXmlStreamAttributes &attributes);
 };
 

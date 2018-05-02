@@ -6,19 +6,25 @@
 */
 
 #include "cppwebserver.h"
+#include "filter.h"
+
+#include <QTimer>
 
 CWF_BEGIN_NAMESPACE
 
-CppWebServer::CppWebServer(const Configuration &configuration, Filter *filter) : configuration(configuration), filter(filter)
+CppWebServer::CppWebServer(const Configuration &configuration, Filter *filter) 
+    : configuration(configuration), 
+    filter(filter),
+    timer( new QTimer)
 {
     loadSslConfiguration();
     this->thread()->setPriority(QThread::TimeCriticalPriority);
     pool.setMaxThreadCount(configuration.getMaxThread());
     pool.setExpiryTimeout(configuration.getTimeOut());
     if(!filter)
-        this->filter = new Filter;
-    timer = new QTimer;
-    connect(timer, &QTimer::timeout, this, &CppWebServer::doClean);
+        this->filter.reset( new Filter);
+    
+    connect( timer.data(), &QTimer::timeout, this, &CppWebServer::doClean);
     timer->start(configuration.getCleanupInterval());
 }
 
@@ -28,20 +34,23 @@ CppWebServer::~CppWebServer()
 
     std::for_each(urlController.constBegin(), urlController.constEnd(), [](Controller *i){ delete i; });
     std::for_each(sessions.constBegin(), sessions.constEnd(), [](Session *i){ delete i; });
-    delete filter;
-    delete sslConfiguration;
 }
 
 void CppWebServer::incomingConnection(qintptr socketfd)
 {
-    while(block)
-        this->thread()->msleep(sleepTime);   
-    pool.start(new HttpReadRequest(socketfd, urlController, sessions, configuration, sslConfiguration, filter), QThread::LowPriority);
+    QMutexLocker _(&sessionsMtx);
+    pool.start( 
+        new HttpReadRequest(
+            socketfd, urlController,
+            sessions, configuration,
+            sslConfiguration, filter),
+        QThread::LowPriority);
 }
 
 void CppWebServer::doClean()
 {    
-    block = 1;
+    QMutexLocker _(&sessionsMtx);
+
     while(!pool.waitForDone(sleepTime));
 
     Session *session = nullptr;

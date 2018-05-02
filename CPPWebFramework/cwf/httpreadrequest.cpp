@@ -132,13 +132,15 @@ bool HttpReadRequest::readBody(HttpParser &parser, Request &request, Response &r
     }
     if(content.size() > maxUploadFile)
     {
-        request.getRequestDispatcher(STATUS::STATUS_403).forward(request, response);
+		 request.getRequestDispatcher(STATUS::STATUS_403())
+			.forward(request, response);
+			
         return false;
     }
 
     parser.body = std::move(content);
 
-    if(parser.contentType.contains(HTTP::APPLICATION_WWW_FORM_URLENCODED))
+    if(parser.contentType.contains(HTTP::APPLICATION_WWW_FORM_URLENCODED()))
         parser.doParseBody();
     else if(parser.multiPart)
         parser.doParseFiles();

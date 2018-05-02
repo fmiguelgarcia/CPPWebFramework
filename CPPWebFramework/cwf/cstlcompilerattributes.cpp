@@ -10,6 +10,8 @@
 #include <QVariant>
 #include "metaclassparser.h"
 
+#include <QStringBuilder>
+
 namespace
 {
 	template<class T>
@@ -31,27 +33,40 @@ namespace
 
 CWF_BEGIN_NAMESPACE
 
-CSTLCompilerAttributes::CSTLCompilerAttributes(QMap<QString, QObject *> &objects) : objects(objects)
+CSTLCompilerAttributes::CSTLCompilerAttributes(const QMap<QString, QObject *> &objects) : objects(objects)
 {
 }
 
-QString CSTLCompilerAttributes::buildAttributes(QMap<QString, QString> &attr, bool keyValue)
+QString CSTLCompilerAttributes::buildAttributes(
+	QMap<QString, QString> &attr, 
+	const bool keyValue)
 {
-    QString htmlOut;
-    for(QMap<QString, QString>::iterator it = attr.begin(); it != attr.end(); ++it)
-    {
-        compileAttributes(attr);
-        if(keyValue)
-            htmlOut += " " + it.key() + "=\"" + it.value() + "\"";
-        else
-            htmlOut += it.value();
-    }
+	using AttrItr = QMap<QString, QString>::iterator;
+	using AttrHandler = std::function< QString( AttrItr& )>;
+
+	AttrHandler attrHandler;
+	QString htmlOut;
+
+	if(keyValue)
+		attrHandler = []( AttrItr& it){
+			return QChar(' ')
+				% it.key() % QLatin1Literal("=\"") % it.value()
+				% QChar('\"');
+		};
+	else
+		attrHandler = []( AttrItr& it){ return it.value(); };
+
+	compileAttributes(attr);
+    
+	for( auto it = attr.begin(); it != attr.end(); ++it)
+        htmlOut += attrHandler( it);
+
     return htmlOut;
 }
 
 void CSTLCompilerAttributes::compileAttributes(QMap<QString, QString> &attr)
 {
-    for(QMap<QString, QString>::iterator it = attr.begin(); it != attr.end(); ++it)
+    for( auto it = attr.begin(); it != attr.end(); ++it)
     {
         QString outPutText;
         QString &value = it.value();
