@@ -23,8 +23,8 @@ namespace CONFIGURATION
 //XML CONSTANTS
 namespace XML
 {
-    QByteArray HEADER() Q_DECL_NOEXCEPT
-    { return QByteArrayLiteral("<?xml version=\"1.0\" encoding=\"iso-8859-1\" ?>\n");}
+    QString HEADER() Q_DECL_NOEXCEPT
+    { return QStringLiteral("<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n");}
 }
 
 //GETTER AND SETTER CONSTANTS
@@ -52,8 +52,8 @@ namespace STATUS
     QByteArray STATUS_403() Q_DECL_NOEXCEPT
     { return QByteArrayLiteral("/config/cppwebserverpages/403.view");}
 
-    QByteArray STATUS_404() Q_DECL_NOEXCEPT
-    { return QByteArrayLiteral("/config/cppwebserverpages/404.view");}
+    QString STATUS_404() Q_DECL_NOEXCEPT
+    { return QStringLiteral("/config/cppwebserverpages/404.view");}
 
     QByteArray NOT_FOUND() Q_DECL_NOEXCEPT
     { return QByteArrayLiteral("Not Found");}

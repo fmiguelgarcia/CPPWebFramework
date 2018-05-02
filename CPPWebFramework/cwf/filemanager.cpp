@@ -10,34 +10,27 @@
 
 CWF_BEGIN_NAMESPACE
 
-QString FileManager::extract(QString &name, char ch)
+QStringRef FileManager::extract( const QString &name, const QChar ch) noexcept
 {
-    QString fName;
-    for(int i = (name.size() - 1); i >= 0 ; --i)
-    {
-        if(name[i] == ch)
-            break;
-        fName.push_front(name[i]);
-    }
-    return fName;
+    return name.midRef( name.lastIndexOf( ch));
 }
 
 void FileManager::removeLastBar(QString &path)
 {
-    if(path.endsWith("/"))
+    if(path.endsWith( QLatin1Char('/')))
         path.remove(path.length() - 1, 1);
 }
 
 void FileManager::removeFirstBar(QString &path)
 {
-    if(path.startsWith("/"))
+    if(path.startsWith( QLatin1Char('/')))
         path.remove(0, 1);
 }
 
 void FileManager::putFirstBar(QString &path)
 {
-    if(!path.startsWith("/"))
-        path.push_front("/");
+    if(!path.startsWith( QLatin1Char('/')))
+        path.push_front( QLatin1Char('/'));
 }
 
 QByteArray FileManager::readAll(const QString &fileName, QFile::FileError &fileErro)
@@ -61,13 +54,9 @@ bool FileManager::copyDirectoryFiles(const QString &fromDir, const QString &toDi
             return false;
     }
 
-    QFileInfoList fileInfoList(std::move(sourceDir.entryInfoList()));
+    QFileInfoList fileInfoList = sourceDir.entryInfoList( QDir::NoDotAndDotDot);
     for(const QFileInfo &fileInfo : fileInfoList)
     {
-        if(fileInfo.fileName() == "." || fileInfo.fileName() == "..")
-        {
-            continue;
-        }
         if(fileInfo.isDir())
         {
             if(!copyDirectoryFiles(fileInfo.filePath(), targetDir.filePath(fileInfo.fileName()), coverFileIfExist))
@@ -89,5 +78,16 @@ bool FileManager::copyDirectoryFiles(const QString &fromDir, const QString &toDi
     }
     return true;
 }
+
+QStringRef FileManager::fileName(const QString &name) noexcept
+{
+    return extract(name, QLatin1Char('/'));
+}
+
+QStringRef FileManager::fileExtention( const QString &name) noexcept
+{
+    return extract(name, QLatin1Char('.'));
+}
+
 
 CWF_END_NAMESPACE

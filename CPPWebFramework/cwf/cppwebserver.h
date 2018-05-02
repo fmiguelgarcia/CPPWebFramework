@@ -19,6 +19,8 @@
 #include <QScopedPointer>
 #include <QWeakPointer>
 
+#include <memory>
+
 class QTimer;
 class QSslConfiguration;
 
@@ -37,20 +39,20 @@ class CPPWEBFRAMEWORKSHARED_EXPORT CppWebServer : public QTcpServer
 protected:
     CppWebServerPrivate *d_ptr;
     Q_DECLARE_PRIVATE(CppWebServer);
- 
-private:
-    Configuration configuration;
-    QScopedPointer<Filter> filter;
-    QScopedPointer<QTimer, QScopedPointerDeleteLater> timer;
-    QThreadPool pool;
 
-    QHash<QString, QScopedPointer<Controller>> urlController;
+private:
+    QThreadPool pool;
+    Configuration mConfiguration;
+
+    QHash<QString, std::shared_ptr<Controller>> urlController;
     QMutex urlControllerMtx;
     QHash<QString, QWeakPointer<Session> > sessions;
     QMutex sessionsMtx;
-    
-    QScopedPointer<QSslConfiguration> sslConfiguration;
-    
+
+    QScopedPointer<QTimer> timer;
+    QScopedPointer<Filter> filter;
+    QScopedPointer<QSslConfiguration> mSslConfiguration;
+
     /**
      * @brief Load the SSL Configuration to the server.
      */
@@ -65,6 +67,7 @@ public:
      * @brief Destroys all controllers and sessions.
     */
     virtual ~CppWebServer();
+
     /**
      * @brief Hitches a url to a Controller.
      * @param const QString &url   : Url name.
@@ -74,13 +77,19 @@ public:
     void addController(const QString &url) noexcept
     {
         static_assert(std::is_base_of<Controller, CONTROLLER>::value, "CONTROLLER must be a descendant of Controller");
-       
-        QScopedPointer<CONTROLLER, QScopedPointerDeleteLater> ctrl(
-              new CONTROLLER);
+
+        std::shared_ptr<CONTROLLER> ctrl = std::make_shared<CONTROLLER>();
 
         QMutexLocker _(&urlControllerMtx);
-        urlController.insert(url, std::move(ctrl));
+        urlController.insert(url, ctrl);
     }
+
+    inline QSslConfiguration* sslConfiguration() const noexcept
+    { return mSslConfiguration.data();}
+
+    inline const Configuration& configuration() const noexcept
+    { return mConfiguration;}
+
 protected:
     /**
      * @brief incomingConnection

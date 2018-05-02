@@ -33,7 +33,7 @@ CWF_BEGIN_NAMESPACE
 HttpCookie::HttpCookie(const QByteArray &source)
 {
     using CookieHandler = std::function< void( HttpCookie*, const QByteArray&)>;
-    static const QHash<QString, CookieHandler> cookieHandler= {
+    static const QHash<QByteArray, CookieHandler> cookieHandler= {
         {
             COOKIE::COMMENT(),
             []( HttpCookie* target, const QByteArray& value){

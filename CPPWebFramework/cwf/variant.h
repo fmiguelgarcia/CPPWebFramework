@@ -13,6 +13,11 @@
 #include "cppwebframework_global.h"
 
 CWF_BEGIN_NAMESPACE
+
+#if 1
+using Variant = QVariant;
+#else
+
 /**
 * @brief This class is designed to facilitate the passing of simple type parameters such as
 * qlonglong, double, int, and QString to the CSTL (C++ Server Pages Standard Tags Library).
@@ -84,6 +89,7 @@ public slots:
      */
     inline void setString(const QString &value) noexcept { variant = value; }
 };
+#endif 
 
 CWF_END_NAMESPACE
 

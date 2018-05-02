@@ -130,7 +130,7 @@ void Response::writeToSocket(const QByteArray &data)
     socket->moveToThread(QThread::currentThread());
     if(socket->ConnectingState > 0 && data.size() > 0)
     {
-        socket->write(data, data.size());
+        socket->write( data);
         socket->flush();
         //qDebug() << data;
         if(socket->ConnectingState > 0)

@@ -6,11 +6,17 @@
 
 QT       += network xml sql
 QT       -= gui
+CONFIG	+= warn_on c++14
 
 TARGET = CPPWebFramework
 TEMPLATE = lib
 
-DEFINES += CPPWEBFRAMEWORK_LIBRARY
+DEFINES += \
+    CPPWEBFRAMEWORK_LIBRARY \
+    QT_NO_CAST_FROM_ASCII \
+    QT_NO_CAST_TO_ASCII \
+    QT_NO_CAST_FROM_BYTEARRAY \
+    QT_USE_QSTRINGBUILDER
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked as deprecated (the exact warnings
@@ -51,7 +57,7 @@ SOURCES += \
     cwf/cppwebcontroller.cpp
 
 HEADERS += \
-        cwf/cppwebframework_global.h \
+    cwf/cppwebframework_global.h \
     cwf/configuration.h \
     cwf/constants.h \
     cwf/cppwebapplication.h \

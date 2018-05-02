@@ -12,21 +12,21 @@ CWF_BEGIN_NAMESPACE
 
 QPair<QString, qint64> getFileAndMaxSize()
 {
-    QPair<QString, qlonglong> info;
-
-    info.first  = qgetenv(CONFIGURATION::CPP_LOG_VAR().toStdString().data());
-    info.second = QByteArray(qgetenv(CONFIGURATION::CPP_LOG_MAX_VAR().toStdString().data())).toInt();
+    QPair<QString, qlonglong> info {
+        QString::fromLocal8Bit( 
+            qgetenv( CONFIGURATION::CPP_LOG_VAR().constData())),
+        qgetenv( CONFIGURATION::CPP_LOG_MAX_VAR().constData()).toLongLong()
+    };
 
     if(info.second <= 0)
-    {
         info.second = 20000000;
-    }
+
     return info;
 }
 
 void writeLog(QtMsgType type, const QMessageLogContext &logContext, const QString &msg)
 {
-    QPair<QString, qint64> info(getFileAndMaxSize());
+    const QPair<QString, qint64> info(getFileAndMaxSize());
     QFile file(info.first);
 
     if(file.size() > info.second)
@@ -37,7 +37,7 @@ void writeLog(QtMsgType type, const QMessageLogContext &logContext, const QStrin
     if(file.open(QIODevice::Append))
     {
         QTextStream out(&file);
-        QString date = QDateTime::currentDateTime().toString("dd/MM/yyyy hh:mm:ss:zzz");
+        const QString date = QDateTime::currentDateTime().toString( Qt::ISODate);
         out << "Date: "       << date;
         out << "\nCategory: " << logContext.category;
         out << "\nFile: "     << logContext.file;
@@ -81,11 +81,11 @@ CppWebApplication::CppWebApplication(int argc, char *argv[],
 
             if(configuration.getAccessServerPages())
             {
-                server->addController<CppWebController>("/example");
-                server->addController<CppWebController>("/authors");
-                server->addController<CppWebController>("/documentation");
-                server->addController<CppWebController>("/ssl");
-                server->addController<CppWebController>("/index");
+                server->addController<CppWebController>( QLatin1String("/example"));
+                server->addController<CppWebController>( QLatin1String("/authors"));
+                server->addController<CppWebController>( QLatin1String("/documentation"));
+                server->addController<CppWebController>( QLatin1String("/ssl"));
+                server->addController<CppWebController>( QLatin1String("/index"));
             }
         }        
     }

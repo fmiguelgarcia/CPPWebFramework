@@ -19,9 +19,12 @@ CWF_BEGIN_NAMESPACE
 class CPPWEBFRAMEWORKSHARED_EXPORT FileManager
 {
 public:
-     static QString extract(QString &name, char ch);
-     inline static QString fileName(QString &name) { return extract(name, '/'); }
-     inline static QString fileExtention(QString &name) { return extract(name, '.'); }
+     static QStringRef extract( const QString& name, const QChar ch) noexcept;
+
+     static QStringRef fileName( const QString &name) noexcept;
+
+     static QStringRef fileExtention( const QString& name) noexcept;
+
      static void removeLastBar(QString &path);
      static void removeFirstBar(QString &path);
      static void putFirstBar(QString &path);

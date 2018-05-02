@@ -24,8 +24,8 @@ CSTLCompilerImport::CSTLCompilerImport(const QXmlStreamAttributes &attr, QString
     if(size == 0)
     {
         attributes.insert(
-			CSTL::TAG::PROPERTY::ERROR(),
-			errorMissingUrlAttribute());
+            CSTL::TAG::PROPERTY::ERROR(),
+            errorMissingUrlAttribute());
     }
     else if(size == 1)
     {
@@ -35,27 +35,28 @@ CSTLCompilerImport::CSTLCompilerImport(const QXmlStreamAttributes &attr, QString
          if(name != CSTL::TAG::PROPERTY::IMPORT::URL())
          {
              attributes.insert(
-				CSTL::TAG::PROPERTY::ERROR(),
-				errorMissingUrlAttribute());
+                CSTL::TAG::PROPERTY::ERROR(),
+                errorMissingUrlAttribute());
          }
          else
-         {             
+         {
              FileManager fileManager;
              fileManager.removeLastBar(path);
 
              path += value;
 
              QFile::FileError fileError;
+             QByteArray data = fileManager.readAll(path, fileError);
              attributes.insert(
-				CSTL::TAG::PROPERTY::IMPORT::URL(),
-				fileManager.readAll(path, fileError));
+                CSTL::TAG::PROPERTY::IMPORT::URL(),
+                QString::fromUtf8( data));
          }
     }
     else
     {
         attributes.insert(
-			CSTL::TAG::PROPERTY::ERROR(),
-			errorMissingUrlAttribute());
+            CSTL::TAG::PROPERTY::ERROR(),
+            errorMissingUrlAttribute());
     }
 }
 

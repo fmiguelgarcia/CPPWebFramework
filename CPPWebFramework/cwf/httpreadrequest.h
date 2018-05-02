@@ -30,22 +30,29 @@
 
 CWF_BEGIN_NAMESPACE
 class Configuration;
+class CppWebServer;
+class HttpReadRequestPrivate;
+
 /**
  * @brief The HttpReadRequest class is created automatically by the CppWebServer and inserted <br>
  * in a QThreadPool, always when the CppWebServer has a call by a client(Browser).
  */
 class CPPWEBFRAMEWORKSHARED_EXPORT HttpReadRequest : public QRunnable
 {
-    qintptr     socketDescriptor;
-    QMapThreadSafety<QString, Controller *> &urlController;
-    QMapThreadSafety<QString, Session *> &sessions;    
-    const Configuration &configuration;
-    QSslConfiguration   *sslConfiguration;
-    Filter              *filter;
-    QTcpSocket          *socket = nullptr;
+protected:
+    HttpReadRequestPrivate *d_ptr;
+    Q_DECLARE_PRIVATE(HttpReadRequest);
+
+private:
+    const CppWebServer &mWebServer;
+
+    QScopedPointer<QTcpSocket> socket;
+    qintptr socketDescriptor;
     qint64 maxUploadFile;
+
     bool readBody(HttpParser &parser, Request &request, Response &response);
     void createSocket();
+
 public:
     /**
      * @brief This constructor provides the necessary information to create a HttpReadRequest
@@ -56,11 +63,7 @@ public:
      * @param Filter *filter                                       : Filter
      */
     HttpReadRequest(qintptr socketDescriptor,
-                    QMapThreadSafety<QString, Controller *> &urlController,
-                    QMapThreadSafety<QString, Session *> &sessions,
-                    const Configuration &configuration,
-                    QSslConfiguration *sslConfiguration,                    
-                    Filter *filter);
+                    const CppWebServer& webServer);
 
     /**
      * @brief Destroys dynamically allocated resources.

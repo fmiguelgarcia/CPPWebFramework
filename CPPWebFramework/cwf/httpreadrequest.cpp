@@ -6,42 +6,33 @@
 */
 
 #include "httpreadrequest.h"
+#include "cppwebserver.h"
 #include "configuration.h"
 #include "constants.h"
 
 CWF_BEGIN_NAMESPACE
 
-HttpReadRequest::HttpReadRequest(qintptr socketDescriptor,
-                                 QMapThreadSafety<QString, Controller *> &urlController,
-                                 QMapThreadSafety<QString, Session *> &sessions,
-                                 const Configuration &configuration,
-                                 QSslConfiguration *sslConfiguration,
-                                 Filter *filter) :
-    socketDescriptor(socketDescriptor),
-    urlController(urlController),
-    sessions(sessions),
-    configuration(configuration),
-    sslConfiguration(sslConfiguration),
-    filter(filter)
-{
-}
+HttpReadRequest::HttpReadRequest(qintptr socketDescriptor, const CppWebServer& webServer)
+    : mWebServer( webServer),
+    socketDescriptor(socketDescriptor)
+{}
 
 HttpReadRequest::~HttpReadRequest()
-{
-    delete socket;
-}
+{}
 
 void HttpReadRequest::run()
 {
+
     createSocket();
     socket->setSocketDescriptor(socketDescriptor);
 #ifndef QT_NO_OPENSSL
-    if (sslConfiguration)
+    if ( mWebServer.sslConfiguration())
     {
-        ((QSslSocket*)socket)->startServerEncryption();
+        QSslSocket* sslSocket = static_cast<QSslSocket*>(socket.data());
+        sslSocket->startServerEncryption();
     }
-#endif    
-    maxUploadFile = configuration.getMaxUploadFile();
+#endif
+    maxUploadFile = mWebServer.configuration().getMaxUploadFile();
     socket->setReadBufferSize(maxUploadFile);
     if(socket->ConnectedState > 0)
     {
@@ -113,7 +104,7 @@ bool HttpReadRequest::readBody(HttpParser &parser, Request &request, Response &r
     int maximumTime = configuration.getTimeOut() / 2;
     std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 
-    while(true)
+    forever
     {
         if(socket->waitForReadyRead(10))
             content += socket->readAll();
@@ -130,11 +121,12 @@ bool HttpReadRequest::readBody(HttpParser &parser, Request &request, Response &r
         if(spendTime >= maximumTime)
             break;
     }
+
     if(content.size() > maxUploadFile)
     {
-		 request.getRequestDispatcher(STATUS::STATUS_403())
-			.forward(request, response);
-			
+        request.getRequestDispatcher(STATUS::STATUS_403())
+            .forward(request, response);
+
         return false;
     }
 
@@ -150,16 +142,17 @@ bool HttpReadRequest::readBody(HttpParser &parser, Request &request, Response &r
 
 void HttpReadRequest::createSocket()
 {
+    auto sslConf = mWebServer.sslConfiguration();
 #ifndef QT_NO_OPENSSL
-    if (sslConfiguration)
+    if (sslConf)
     {
         QSslSocket *sslSocket = new QSslSocket;
-        sslSocket->setSslConfiguration(*sslConfiguration);
-        socket = sslSocket;
-        return;
+        sslSocket->setSslConfiguration(*sslConf);
+        socket.reset( sslSocket);
     }
+    else
 #endif
-    socket = new QTcpSocket;
+        socket.reset( new QTcpSocket);
 }
 
 CWF_END_NAMESPACE

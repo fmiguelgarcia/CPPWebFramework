@@ -6,16 +6,18 @@
 */
 
 #include "cppwebserver.h"
+#include "httpreadrequest.h"
 #include "filter.h"
 
 #include <QTimer>
+#include <QSslKey>
 
 CWF_BEGIN_NAMESPACE
 
 CppWebServer::CppWebServer(const Configuration &configuration, Filter *filter) 
-    : configuration(configuration), 
-    filter(filter),
-    timer( new QTimer)
+    : mConfiguration(configuration),
+    timer( new QTimer),
+    filter(filter)
 {
     loadSslConfiguration();
     this->thread()->setPriority(QThread::TimeCriticalPriority);
@@ -23,7 +25,7 @@ CppWebServer::CppWebServer(const Configuration &configuration, Filter *filter)
     pool.setExpiryTimeout(configuration.getTimeOut());
     if(!filter)
         this->filter.reset( new Filter);
-    
+
     connect( timer.data(), &QTimer::timeout, this, &CppWebServer::doClean);
     timer->start(configuration.getCleanupInterval());
 }
@@ -31,19 +33,13 @@ CppWebServer::CppWebServer(const Configuration &configuration, Filter *filter)
 CppWebServer::~CppWebServer()
 {
     while(!pool.waitForDone());
-
-    std::for_each(urlController.constBegin(), urlController.constEnd(), [](Controller *i){ delete i; });
-    std::for_each(sessions.constBegin(), sessions.constEnd(), [](Session *i){ delete i; });
 }
 
 void CppWebServer::incomingConnection(qintptr socketfd)
 {
     QMutexLocker _(&sessionsMtx);
     pool.start( 
-        new HttpReadRequest(
-            socketfd, urlController,
-            sessions, configuration,
-            sslConfiguration, filter),
+        new HttpReadRequest( socketfd, *this),
         QThread::LowPriority);
 }
 
@@ -51,6 +47,7 @@ void CppWebServer::doClean()
 {    
     QMutexLocker _(&sessionsMtx);
 
+#if 0
     while(!pool.waitForDone(sleepTime));
 
     Session *session = nullptr;
@@ -68,12 +65,13 @@ void CppWebServer::doClean()
         sessions.remove(idSessionsToDelete[i]);
 
     block = 0;
+#endif
 }
 
 void CppWebServer::loadSslConfiguration()
 {
-    QString sslKey  = configuration.getSslKeyFile();
-    QString sslCert = configuration.getSslCertFile();
+    QString sslKey  = mConfiguration.getSslKeyFile();
+    QString sslCert = mConfiguration.getSslCertFile();
     if (!sslKey.isEmpty() && !sslCert.isEmpty())
     {
 #ifdef QT_NO_OPENSSL
@@ -110,12 +108,12 @@ void CppWebServer::loadSslConfiguration()
                 return;
             }
 
-            sslConfiguration = new QSslConfiguration();
+            mSslConfiguration.reset( new QSslConfiguration());
 
-            sslConfiguration->setLocalCertificate(certificate);
-            sslConfiguration->setPrivateKey(key);
-            sslConfiguration->setPeerVerifyMode(QSslSocket::VerifyNone);
-            sslConfiguration->setProtocol(QSsl::TlsV1SslV3);
+            mSslConfiguration->setLocalCertificate(certificate);
+            mSslConfiguration->setPrivateKey(key);
+            mSslConfiguration->setPeerVerifyMode(QSslSocket::VerifyNone);
+            mSslConfiguration->setProtocol(QSsl::TlsV1SslV3);
 #endif
     }
 }

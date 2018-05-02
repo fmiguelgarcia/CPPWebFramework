@@ -71,10 +71,8 @@ void FilterChain::doFilter(CWF::Request &request, CWF::Response &response)
     else
     {
         FileManager fileManager;
-        QString url  = request.getRequestURL();
+        QByteArray url = request.getRequestURL();
         QString path = request.getPath();
-        const QString &extention = fileManager.fileExtention(url);
-
 
         if(url == FILE_EXTENTION::BAR())
         {
@@ -84,7 +82,9 @@ void FilterChain::doFilter(CWF::Request &request, CWF::Response &response)
         {
             const QMimeType pathMime = mMimeDB.mimeTypeForName( path);
             if( pathMime.isValid())
-                write(response, path, url, HTTP::CONTENT_TYPE(), pathMime.name().toUtf8());
+                write(response, path, QString::fromUtf8(url),
+                      HTTP::CONTENT_TYPE(),
+                      pathMime.name().toUtf8());
             else
             {
                 response.setStatus(Response::SC_NOT_FOUND, STATUS::NOT_FOUND());
@@ -95,7 +95,12 @@ void FilterChain::doFilter(CWF::Request &request, CWF::Response &response)
     }
 }
 
-void FilterChain::write(Response &response, const QString &path, const QString &url, const QByteArray &name, const QByteArray &value) const
+void FilterChain::write(
+    Response &response,
+    const QString &path,
+    const QString &url,
+    const QByteArray &name,
+    const QByteArray &value) const
 {
     QFile file(path + url);
     if(file.open(QIODevice::ReadOnly))

@@ -38,27 +38,26 @@ CSTLCompilerAttributes::CSTLCompilerAttributes(const QMap<QString, QObject *> &o
 }
 
 QString CSTLCompilerAttributes::buildAttributes(
-	QMap<QString, QString> &attr, 
-	const bool keyValue)
+    QMap<QString, QString> &attr,
+    const bool keyValue)
 {
-	using AttrItr = QMap<QString, QString>::iterator;
-	using AttrHandler = std::function< QString( AttrItr& )>;
+    using AttrItr = QMap<QString, QString>::iterator;
+    using AttrHandler = std::function< QString( AttrItr& )>;
 
-	AttrHandler attrHandler;
-	QString htmlOut;
+    AttrHandler attrHandler;
+    QString htmlOut;
 
-	if(keyValue)
-		attrHandler = []( AttrItr& it){
-			return QChar(' ')
-				% it.key() % QLatin1Literal("=\"") % it.value()
-				% QChar('\"');
-		};
-	else
-		attrHandler = []( AttrItr& it){ return it.value(); };
+    if(keyValue)
+        attrHandler = []( AttrItr& it){
+            return QLatin1Char(' ') % it.key() % QLatin1Literal("=\"")
+                % it.value() % QLatin1Char('\"');
+        };
+    else
+        attrHandler = []( AttrItr& it){ return it.value(); };
 
-	compileAttributes(attr);
+    compileAttributes(attr);
     
-	for( auto it = attr.begin(); it != attr.end(); ++it)
+    for( auto it = attr.begin(); it != attr.end(); ++it)
         htmlOut += attrHandler( it);
 
     return htmlOut;
@@ -105,18 +104,18 @@ void CSTLCompilerAttributes::compile(QString &text, QString &outPutText)
     for(int i = 0; i < size; ++i)
     {
         QChar ch = text[i];
-        if(ch == '#')
+        if(ch == QLatin1Char('#'))
         {
             if((i + 1) < size)
             {
                 QChar c = text[i + 1];
-                if(c == '{')
+                if(c == QLatin1Char('{'))
                 {
                     start = true;
                 }
             }
         }
-        else if(ch == '}')
+        else if(ch == QLatin1Char('}'))
         {
             if(start)
             {

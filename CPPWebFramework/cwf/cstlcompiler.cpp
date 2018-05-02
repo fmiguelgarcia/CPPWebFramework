@@ -37,11 +37,11 @@ QByteArray CSTLCompiler::openFile(QXmlStreamReader &xml)
 {
     if(isStrFileName)
     {
-        QFile file(str);
+        QFile file( QString::fromUtf8(str));
         if(!file.open(QIODevice::ReadOnly))
             return "<html><body>" + file.errorString().toUtf8() + "</body></html>";
 
-        QByteArray content(std::move(file.readAll()));
+        QByteArray content(file.readAll());
         file.close();
         if(isView)
         {
@@ -75,40 +75,46 @@ QByteArray CSTLCompiler::processOutTag(QMap<QString, QString> &attr)
 
 QByteArray CSTLCompiler::getBody(QXmlStreamReader &xml, const QString &tagName)
 {
-    QByteArray name, text, content(XML::HEADER());
-    QString att;
+    QByteArray content( XML::HEADER().toUtf8());
+    QStringRef text;
+    QStringRef name;
     CSTLCompilerAttributes compilerAttributes(objects);
-    QMap<QString, QString> attributes;
-    QMap<QString, QString>::iterator it;
 
-    xml.readNext();
-    while(!xml.atEnd())
+    for( xml.readNext(); !xml.atEnd(); xml.readNext())
     {
-        name = xml.name().toUtf8().toLower();
-        text = xml.text().toUtf8();
+        name = xml.name();
+        text = xml.text();
 
         if(xml.isStartElement())
         {
-            attributes = std::move(compilerAttributes.getAttributes(xml.attributes()));
-            for(it = attributes.begin(); it != attributes.end(); ++it)
-                att += " " + it.key() + "=\"" + it.value() + "\"";
-            content += "<" + name + att + ">" + text;
-            attributes.clear();
-            att.clear();
+            QString att;
+            QMap<QString, QString> attributes =  compilerAttributes.getAttributes(xml.attributes());
+
+            for( auto it = attributes.begin(); it != attributes.end(); ++it)
+                att += QLatin1Char(' ') % it.key() % QLatin1String("=\"")
+                    % it.value() % QLatin1Char('\"');
+
+            content += '<' + name.toUtf8().toLower() + att + '>' + text.toUtf8();
         }
-        else if(xml.isEndElement() && name == tagName)
-            break;
         else if(xml.isEndElement())
-            content += text + "</" + name + ">";
+        {
+            if (name == tagName)
+                break;
+
+            content += text.toUtf8() + "</" + name.toUtf8().toLower() + '>';
+        }
         else
-            content += text;
-        xml.readNext();
+            content += text.toUtf8();
     }
+
     return content;
 }
 
 QByteArray CSTLCompiler::processForTag(QXmlStreamReader &xml)
 {
+    const QString hashOpenKey = QStringLiteral("#{");
+    const QChar closeKey = QLatin1Char( '}');
+
     QByteArray htmlOut;
     CSTLCompilerFor forAttributes(xml.attributes());
     CSTLCompilerAttributes compilerAttributes(objects);
@@ -121,15 +127,17 @@ QByteArray CSTLCompiler::processForTag(QXmlStreamReader &xml)
     }
     else
     {
-        QString items(forAttributes.attributes[CSTL::TAG::PROPERTY::FOR::ITEMS()]);
-        items.replace("#{", "").replace("}", "");
+        const QString items = forAttributes.attributes[CSTL::TAG::PROPERTY::FOR::ITEMS()]
+            .remove( hashOpenKey)
+            .remove( closeKey);
+
         if(objects.contains(items))
         {
             QObject *object = (QObject*)objects[items];
-            QString type(object->metaObject()->className());
 
             if(!items.isEmpty())
             {
+                const QString type = QString::fromLocal8Bit( object->metaObject()->className());
                 if(type != CSTL::SUPPORTED_TYPES::CWF_QLISTOBJECT())
                 {
                     htmlOut = "***ERROR - " + type.toUtf8() + " ISN'T A CWF::QListObject***";
@@ -138,9 +146,11 @@ QByteArray CSTLCompiler::processForTag(QXmlStreamReader &xml)
                 else
                 {
                     QListObject *qListObject = static_cast<QListObject*>(object);
-                    QString ret(std::move(getBody(xml, CSTL::TAG::FOR())));
-                    QString var(forAttributes.attributes[CSTL::TAG::PROPERTY::VAR()]);
-                    var.replace("#{", "").replace("}", "");
+                    const QByteArray ret = getBody(xml, CSTL::TAG::FOR());
+                    const QString var = forAttributes.attributes[CSTL::TAG::PROPERTY::VAR()]
+                        .remove( hashOpenKey)
+                        .remove( closeKey);
+
                     for(int iL = 0; iL < qListObject->size(); ++iL)
                     {
                         objects.insert(var, qListObject->operator [](iL) );
@@ -156,20 +166,20 @@ QByteArray CSTLCompiler::processForTag(QXmlStreamReader &xml)
             int from      = forAttributes.attributes[CSTL::TAG::PROPERTY::FOR::FROM()].toInt();
             int to        = forAttributes.attributes[CSTL::TAG::PROPERTY::FOR::TO()].toInt();
             int increment = forAttributes.attributes[CSTL::TAG::PROPERTY::FOR::INCREMENT()].toInt();
-            QString tagBody(std::move(getBody(xml, CSTL::TAG::FOR())));
+            QByteArray tagBody = getBody(xml, CSTL::TAG::FOR());
             QString &var = forAttributes.attributes[CSTL::TAG::PROPERTY::VAR()];
             for(int i = from; i <= to; i += increment)
             {
-                QString copy(tagBody);
+                QString copy = QString::fromUtf8( tagBody);
                 CSTLCompilerObject obj;
                 obj.setValue(QString::number(i));
                 objects.insert(var, &obj);
 
-                copy.replace(XML::HEADER(), QString());
+                copy.remove(XML::HEADER());
                 QString outPutText;
                 compilerAttributes.compile(copy, outPutText);
                 copy = XML::HEADER() % QLatin1Literal("<out>") % outPutText 
-						 % QLatin1Literal("</out>");
+                    % QLatin1Literal("</out>");
 
                 QXmlStreamReader forBody(copy);
                 htmlOut += processXml(forBody);
@@ -210,7 +220,7 @@ QByteArray CSTLCompiler::processIfTag(QXmlStreamReader &xml)
         }
 
         CSTLCompilerAttributes compilerAttributes(objects);
-        QString tagBody(std::move(getBody(xml, CSTL::TAG::IF())));
+        QString tagBody = QString::fromUtf8( getBody(xml, CSTL::TAG::IF()));
         compilerAttributes.compileAttributes(ifAttributes.attributes);
 
         bool isTrue = false;
@@ -256,7 +266,8 @@ QByteArray CSTLCompiler::processIfTag(QXmlStreamReader &xml)
 
         if(isTrue)
         {
-            if(!tagBody.contains("<") || !tagBody.contains("</"))
+            if(!tagBody.contains( QLatin1Char('<'))
+                || !tagBody.contains( QLatin1String("</")))
             {
                 tagBody.replace(XML::HEADER(), QString());
                 QString outPutText;
