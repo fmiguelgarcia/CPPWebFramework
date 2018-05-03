@@ -97,6 +97,7 @@ void CSTLCompilerAttributes::compileAttributes(QMap<QString, QString> &attr)
 
 void CSTLCompilerAttributes::compile(QString &text, QString &outPutText)
 {
+    const QString hashOpenKey = QStringLiteral("#{");
     bool start = false;
     const int size = text.size();
     QString expr;
@@ -120,11 +121,11 @@ void CSTLCompilerAttributes::compile(QString &text, QString &outPutText)
             if(start)
             {
                 start = false;
-                expr.replace("#{", "");
+                expr.remove( hashOpenKey);
                 Properties prop(expr);
                 if(!objects.contains(prop.m_class))
                 {
-                    outPutText += "***ERROR - OBJECT " + prop.m_class + " DOES NOT EXIST.***";
+                    outPutText += QLatin1String("***ERROR - OBJECT ") + prop.m_class + QLatin1String(" DOES NOT EXIST.***");
                 }
                 else
                 {
@@ -132,85 +133,85 @@ void CSTLCompilerAttributes::compile(QString &text, QString &outPutText)
                     QObject *object = objects[prop.m_class];
                     bool ok = false;
                     MetaClassParser metaClassParser(object);
-                    QString methodReturnType(std::move(metaClassParser.getReturnType(prop.m_method + "()")));
+                    QString methodReturnType = metaClassParser.getReturnType( prop.m_method + QLatin1String("()"));
 
                     if(!methodReturnType.isEmpty())
                     {
-						using RetHandlerFuncType = std::function< void( QObject*, const char*, QString&, bool&)>;
-						static const QHash<QString, RetHandlerFuncType> returnHandler {
-							{
-								CSTL::SUPPORTED_TYPES::QSTRING(),
-								[]( QObject* object, const char* method, QString& value, bool& ok){
-									ok = QMetaObject::invokeMethod(object, method, Qt::DirectConnection, Q_RETURN_ARG(QString, value));
-								}
-							},
-							{
-								CSTL::SUPPORTED_TYPES::STD_STRING(),
-								[]( QObject* object, const char* method, QString& value, bool& ok){
-									std::string returnValue;
-									ok = QMetaObject::invokeMethod(object, method, Qt::DirectConnection, Q_RETURN_ARG(std::string, returnValue));
-									value = std::move( QString::fromStdString( returnValue));
-								}
-							},
-							{
-								CSTL::SUPPORTED_TYPES::BOOL(),
-								& invokeMethodAndNumber<bool>
-							},
-							{
-								CSTL::SUPPORTED_TYPES::CHAR(),
-								& invokeMethodAndPush<char>
-							},
-							{
-								CSTL::SUPPORTED_TYPES::UNSIGNED_CHAR(),
-								& invokeMethodAndPush<unsigned char>
-							},
-							{
-								CSTL::SUPPORTED_TYPES::SHORT(),
-								& invokeMethodAndNumber<short>
-							},
-							{
-								CSTL::SUPPORTED_TYPES::UNSIGNED_SHORT(),
-								& invokeMethodAndNumber<unsigned short>
-							},
-							{
-								CSTL::SUPPORTED_TYPES::INT(),
-								& invokeMethodAndNumber<int>
-							},
-							{
-								CSTL::SUPPORTED_TYPES::UNSIGNED_INT(),
-								& invokeMethodAndNumber<unsigned int>
-							},
-							{
-								CSTL::SUPPORTED_TYPES::LONG(),
-								& invokeMethodAndNumber<long>
-							},
-							{
-								CSTL::SUPPORTED_TYPES::UNSIGNED_LONG(),
-								& invokeMethodAndNumber<unsigned long>
-							},
-							{
-								CSTL::SUPPORTED_TYPES::LONG_LONG(),
-								& invokeMethodAndNumber<long long>
-							},
-							{
-								CSTL::SUPPORTED_TYPES::UNSIGNED_LONG_LONG(),
-								& invokeMethodAndNumber<unsigned long long>
-							},
-							{
-								CSTL::SUPPORTED_TYPES::FLOAT(),
-								& invokeMethodAndNumber<float>
-							},
-							{
-								CSTL::SUPPORTED_TYPES::DOUBLE(),
-								& invokeMethodAndNumber<double>
-							}
-						};
+                        using RetHandlerFuncType = std::function< void( QObject*, const char*, QString&, bool&)>;
+                        static const QHash<QString, RetHandlerFuncType> returnHandler {
+                            {
+                                CSTL::SUPPORTED_TYPES::QSTRING(),
+                                []( QObject* object, const char* method, QString& value, bool& ok){
+                                    ok = QMetaObject::invokeMethod(object, method, Qt::DirectConnection, Q_RETURN_ARG(QString, value));
+                                }
+                            },
+                            {
+                                CSTL::SUPPORTED_TYPES::STD_STRING(),
+                                []( QObject* object, const char* method, QString& value, bool& ok){
+                                    std::string returnValue;
+                                    ok = QMetaObject::invokeMethod(object, method, Qt::DirectConnection, Q_RETURN_ARG(std::string, returnValue));
+                                    value = QString::fromStdString( returnValue);
+                                }
+                            },
+                            {
+                                CSTL::SUPPORTED_TYPES::BOOL(),
+                                & invokeMethodAndNumber<bool>
+                            },
+                            {
+                                CSTL::SUPPORTED_TYPES::CHAR(),
+                                & invokeMethodAndPush<char>
+                            },
+                            {
+                                CSTL::SUPPORTED_TYPES::UNSIGNED_CHAR(),
+                                & invokeMethodAndPush<unsigned char>
+                            },
+                            {
+                                CSTL::SUPPORTED_TYPES::SHORT(),
+                                & invokeMethodAndNumber<short>
+                            },
+                            {
+                                CSTL::SUPPORTED_TYPES::UNSIGNED_SHORT(),
+                                & invokeMethodAndNumber<unsigned short>
+                            },
+                            {
+                                CSTL::SUPPORTED_TYPES::INT(),
+                                & invokeMethodAndNumber<int>
+                            },
+                            {
+                                CSTL::SUPPORTED_TYPES::UNSIGNED_INT(),
+                                & invokeMethodAndNumber<unsigned int>
+                            },
+                            {
+                                CSTL::SUPPORTED_TYPES::LONG(),
+                                & invokeMethodAndNumber<long>
+                            },
+                            {
+                                CSTL::SUPPORTED_TYPES::UNSIGNED_LONG(),
+                                & invokeMethodAndNumber<unsigned long>
+                            },
+                            {
+                                CSTL::SUPPORTED_TYPES::LONG_LONG(),
+                                & invokeMethodAndNumber<long long>
+                            },
+                            {
+                                CSTL::SUPPORTED_TYPES::UNSIGNED_LONG_LONG(),
+                                & invokeMethodAndNumber<unsigned long long>
+                            },
+                            {
+                                CSTL::SUPPORTED_TYPES::FLOAT(),
+                                & invokeMethodAndNumber<float>
+                            },
+                            {
+                                CSTL::SUPPORTED_TYPES::DOUBLE(),
+                                & invokeMethodAndNumber<double>
+                            }
+                        };
 
-						auto itr = returnHandler.constFind( methodReturnType);
-						if( itr != std::end( returnHandler))
-						{
-							const std::string method = prop.m_method.toStdString();
-							itr.value()( object, method.c_str(), value, ok);
+                        auto itr = returnHandler.constFind( methodReturnType);
+                        if( itr != std::end( returnHandler))
+                        {
+                            const std::string method = prop.m_method.toStdString();
+                            itr.value()( object, method.c_str(), value, ok);
                         }
 
                         if(!ok)
@@ -242,16 +243,16 @@ void CSTLCompilerAttributes::compile(QString &text, QString &outPutText)
     }
 }
 
-QMap<QString, QString> CSTLCompilerAttributes::getAttributes(const QXmlStreamAttributes &attributes)
+QHash<QStringRef, QStringRef>
+CSTLCompilerAttributes::getAttributes(const QXmlStreamAttributes &attributes)
 {
-    QMap<QString, QString> attr;
-    for(int i = 0; i < attributes.size(); ++i)
-    {
-        QString name(std::move(attributes[i].name().toString()));
-        QString value(std::move(attributes[i].value().toString()));
-        attr.insert(name, value);
-    }
-    return attr;
+    QHash<QString, QString> attrMap;
+    attrMap.reserve( attributes.size() * 1.2);
+
+    for( const QXmlStreamAttribute &attr : attributes)
+        attrMap.insert( attr.name(), attr.value());
+
+    return attrMap;
 }
 
 CWF_END_NAMESPACE

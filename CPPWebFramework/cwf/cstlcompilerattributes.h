@@ -9,6 +9,7 @@
 #define CSTLCOMPILERATTRIBUTES_H
 
 #include <QMap>
+#include <QHash>
 #include <QString>
 #include <QObject>
 #include <QXmlStreamAttributes>
@@ -31,10 +32,11 @@ public:
         const bool keyValue = true);
 
     void compileAttributes( QMap<QString, QString> &attr);
-   
+
     void compile( QString &text, QString &outPutText);
-    
-    QMap<QString, QString> getAttributes(const QXmlStreamAttributes &attributes);
+
+    static QHash<QStringRef, QStringRef>
+    getAttributes(const QXmlStreamAttributes &attributes);
 };
 
 CWF_END_NAMESPACE
