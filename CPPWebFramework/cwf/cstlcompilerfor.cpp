@@ -11,47 +11,69 @@
 #include <QSet>
 #include <QStringBuilder>
 
-CWF_BEGIN_NAMESPACE
-
-CSTLCompilerFor::CSTLCompilerFor(const QXmlStreamAttributes &attr)
+namespace 
 {
-	static const QSet<QString> validNames = {
-		CSTL::TAG::PROPERTY::FOR::ITEMS(),
-		CSTL::TAG::PROPERTY::VAR(),
-		CSTL::TAG::PROPERTY::FOR::FROM(),
-		CSTL::TAG::PROPERTY::FOR::TO(),
-		CSTL::TAG::PROPERTY::FOR::INCREMENT()
-	};
-
-    for(int i = 0; i < attr.size(); ++i)
+    void parseItemsTag( CSTLCompilerFor* cFor, const QXmlStreamAttribute& attr)
     {
-        const QString name(attr[i].name().toString().toLower());
-        const QString value(attr[i].value().toString());
-
-		if( !validNames.contains( name))
-        {
-            attributes.insert(
-				CSTL::TAG::PROPERTY::ERROR(),
-				QLatin1Literal("***ERROR FOR TAG - FOR TAG DOESN'T PERMITS AN ATTRIBUTE CALLED ")
-					% name % QLatin1Literal("***"));
-            return;
-        }
-        attributes.insert(name, value);
+    }
+    
+    void parseTagValueToInteger( const QXmlStreamAttribute& attr, int& target, int defaultValue = 0)
+    {
+        bool ok;
+        target = attr.value().toInt( &ok);
+        if( !ok)
+            target = defaultValue;
     }
 
-	if( !attributes.contains(CSTL::TAG::PROPERTY::FOR::ITEMS())
-		|| !attributes.contains(CSTL::TAG::PROPERTY::VAR()))
+    void parseFromTag( CSTLCompilerFor* cFor, const QXmlStreamAttribute& attr)
     {
-        bool from, to, increment;
-        attributes[CSTL::TAG::PROPERTY::FOR::FROM()].toInt(&from);
-        attributes[CSTL::TAG::PROPERTY::FOR::TO()].toInt(&to);
-        attributes[CSTL::TAG::PROPERTY::FOR::INCREMENT()].toInt(&increment);
+        parseTagValueToInteger( cFor->from, attr);
+    }
 
-        if(!(from && to && increment) || !attributes.contains(CSTL::TAG::PROPERTY::VAR()))
+    void parseToTag( CSTLCompilerFor* cFor, const QXmlStreamAttribute& attr)
+    {
+        parseTagValueToInteger( cFor->to, attr);
+    }
+
+    void parseIncrementTag( CSTLCompilerFor* cFor, const QXmlStreamAttribute& attr)
+    {
+        parseTagValueToInteger( cFor->increment, attr, 1);
+    }
+
+    void parseItemsTag( CSTLCompilerFor* cFor, const QXmlStreamAttribute& attr)
+    {
+        cFor->items = attr.value().toString();
+    }
+
+    void parseVarTag( CSTLCompilerFor* cFor, const QXmlStreamAttribute& attr)
+    {
+    }
+}
+
+CWF_BEGIN_NAMESPACE
+
+CSTLCompilerFor::CSTLCompilerFor(const QXmlStreamAttributes &attributes)
+{
+    using AttrHandler = std::function< void( CSTLCompilerFor*, QXmlStreamAttribute&)>;
+    static const QHash<QString, AttrHandler> validForAttributes = {
+        { CSTL::TAG::PROPERTY::FOR::ITEMS(), & parseItemsTag },
+        { CSTL::TAG::PROPERTY::VAR(), & parseVarTag },
+        { CSTL::TAG::PROPERTY::FOR::FROM(), & parseFromTag },
+        { CSTL::TAG::PROPERTY::FOR::TO(), & parseToTag },
+        { CSTL::TAG::PROPERTY::FOR::INCREMENT(), & parseIncrementTag }
+    };
+
+    for( const QXmlStreamAttribute& attr : attributes)
+    {
+        const QString name = attr.name().toString().toLower();
+        auto attrHandlerItr = validForAttributes.find( name);
+        if( attrHandlerItr != end( validForAttributes))
+            attrHandlerItr.value()( this, attr);
+        else
         {
-            attributes.insert(
-				CSTL::TAG::PROPERTY::ERROR(),
-				QStringLiteral("***ERROR FOR TAG - USE THE CORRECT ATTRIBUTES (FROM, TO, INCREMENT, VAR OR ITEMS, VAR)***"));
+            mErrors.push_back(
+                QLatin1Literal("***ERROR FOR TAG - FOR TAG DOESN'T PERMITS AN ATTRIBUTE CALLED ")
+                % name % QLatin1Literal("***"));
         }
     }
 }
